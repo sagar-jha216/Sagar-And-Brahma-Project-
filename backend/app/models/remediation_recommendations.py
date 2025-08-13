@@ -1,0 +1,31 @@
+from sqlalchemy import Column, Integer, String, Float, Date
+from app.database import Base
+
+class RemediationRecommendation(Base):
+    __tablename__ = "remediation_recommendations"
+    id = Column(Integer, primary_key=True, index=True)
+    sku_id = Column(String, index=True)
+    product_name = Column(String)
+    category = Column(String)
+    store_id = Column(String)
+    received_date = Column(Date)
+    quantity_on_hand = Column(Integer)
+    sell_through_rate = Column(Float)
+    sell_through_rate_per_day = Column(Float)
+    shelf_life_remaining = Column(Integer)
+    inventory_age_days = Column(Integer)
+    shrinkage_risk = Column(String)
+    risk_level = Column(String)
+    recommended_action = Column(String)
+    target_name = Column(String)
+    action_quantity_unit_cost = Column(Float)
+    unit_price = Column(Float)
+    original_revenue = Column(Float)
+    cogs = Column(Float)
+    gross_margin_pct = Column(Float)
+    expected_recovery = Column(Float)
+    net_loss_mitigation = Column(Float)
+    tax_benefit_amount = Column(Float)
+    recommendation_rank = Column(Integer)
+    group_key = Column(String)
+    issue_id = Column(String)
