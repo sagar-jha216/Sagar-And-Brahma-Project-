@@ -1,0 +1,200 @@
+/* .container {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+  } */
+
+.column {
+  /* flex: 1;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc; */
+  color: red;
+}
+
+.expand-btn {
+  margin-left: auto;
+  padding: 10px;
+  height: fit-content;
+}
+
+
+.leftSecShrinkMetric {
+  width: 60%;
+}
+
+.bg-success-green {
+  /* background: green; */
+  background: transparent linear-gradient(90deg, #06B050 0%, #FFBF00 100%) 0% 0% no-repeat padding-box;
+}
+
+.bg-warning-yellow {
+  /* background: yellow; */
+  background: transparent linear-gradient(90deg, #FFBF00 100%, #FF0000 0%) 0% 0% no-repeat padding-box;
+}
+
+.bg-brand-red {
+  /* background: red; */
+  background: transparent linear-gradient(90deg, #FFBF00 0%, #FF0000 100%) 0% 0% no-repeat padding-box;
+}
+
+.homeTitleSec h1 {
+  display: flex;
+  color: #171916;
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 24px;
+  margin-top: 30px;
+}
+
+.homeTitleSec h1.retalLeadertext {
+  margin-bottom: 4px !important;
+}
+
+.commandCenterContentSection ul li {
+  color: #171916;
+  font-size: 14px;
+  font-weight: normal;
+  padding-bottom: 5px;
+  display: flex;
+}
+
+.commandCenterContentSection ul li img {
+  margin-right: 10px;
+}
+
+.homeCardBox {
+  /* background: transparent linear-gradient(119deg, #FFAD28 0%, #FFF0D8 29%, #FFFFFF 57%, #FFFFFF 100%) 0% 0% no-repeat padding-box; */
+  background: transparent linear-gradient(-231deg, #FFAD28 -105%, #FFF0D8 29%, #FFFFFF 57%, #FFFFFF 100%) 0% 0% no-repeat padding-box;
+  border-radius: 8px;
+  width: 450px;
+  position: relative;
+}
+
+.homeCardBox:hover {
+  background: transparent linear-gradient(119deg, #FFAD28 -105%, #FFF0D8 29%, #FFFFFF 57%, #FFFFFF 100%) 0% 0% no-repeat padding-box;
+  box-shadow: 0px 0px 20px #FFAD28;
+  border-radius: 8px;
+}
+
+.homeBGVideoSection .homeBG {
+  width: 100%;
+  min-height: 100%;
+  position: absolute;
+  object-fit: cover;
+}
+
+.homeBGVideoSection .overlay {
+  background: transparent linear-gradient(180deg, #FFAD28 0%, #FF4F59 100%) 0% 0% no-repeat padding-box;
+  position: absolute;
+  right: 0;
+  top: 96px;
+  z-index: 9;
+  width: 100%;
+  height: 100%;
+  /* background: rgba(0, 0, 0, 0.3); */
+  pointer-events: none;
+  opacity: .19;
+
+}
+
+.homeContentSec {
+  position: relative;
+  z-index: 9;
+  margin: 0 auto;
+  top: 19%;
+  display: flex;
+  justify-content: center;
+  padding-top: 7%;
+}
+
+.rightCardMarBt {
+  margin-bottom: 104px;
+}
+
+.rightCardHight {
+  height: 218px;
+}
+
+.homeSubTitle {
+  color: #6D706B !important;
+  font-size: 15px !important;
+  font-weight: normal !important;
+  text-align: center;
+  letter-spacing: 2px !important;
+}
+
+.homeDecText {
+  color: #171916 !important;
+  text-align: center;
+  font-size: 14px !important;
+  font-weight: normal;
+  padding-top: 7px;
+}
+
+.homeTitleParentSec {
+  border-bottom: 0.5px solid #282A27;
+  margin-bottom: 7px;
+  margin-left: 20px;
+}
+
+.homeSubTitleSec {
+  background: #171916 0% 0% no-repeat padding-box;
+  border-radius: 8px 8px 0px 0px;
+  width: auto;
+  display: inline;
+  color: #fff !important;
+  font-size: 14px !important;
+  padding: 5px 18px 3px 18px;
+}
+
+.leftSecBox {
+  width: 43%;
+}
+
+.rightSecBox {
+  width: 70%;
+}
+
+.dataSourceText {
+  color: #282A27;
+  font-size: 9px;
+  font-weight: normal;
+  font-style: italic;
+}
+
+.homeIconLeader {
+  width: 81px;
+  position: absolute;
+  align-items: center;
+  left: 39%;
+  top: -46px;
+}
+
+.metricCatagoryText {
+  font-size: 12px;
+  color: #6D706B;
+  text-decoration: underline;
+}
+
+.metricCatagoryPercentage {
+  color: #171916;
+  font-size: 16px;
+  padding-left: 20px;
+}
+
+.indicatorImg {
+
+  position: absolute;
+  top: -25px;
+  /* adjust as needed */
+  transform: translateX(-50%);
+
+}
+
+.rangeSec {
+  padding-bottom: 10px;
+}

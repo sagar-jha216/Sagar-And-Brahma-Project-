@@ -1,0 +1,92 @@
+/* Calendar container */
+.custom-datepicker {
+  background-color: #1e1e1e; /* Dark background */
+  color: white;
+border-radius: 8px;
+opacity: 1;
+  padding: 5px;
+  border: 1px solid #444;
+  font-family: 'Funnel Sans', sans-serif;
+  z-index: 9999;
+}
+
+/* Header (month/year selector) */
+.react-datepicker__header {
+  background-color: #1e1e1e;
+  border-bottom: none;
+}
+
+/* Month navigation arrows */
+.react-datepicker__navigation {
+  top: 10px;
+}
+.react-datepicker__navigation-icon::before {
+  border-color: #FFAD28;
+  border-width: 2px 2px 0 0;
+}
+
+/* Month and year text */
+.react-datepicker__current-month {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Weekday headers (Mon, Tue, etc.) */
+.react-datepicker__day-name {
+  color: #FFAD28;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Day cells */
+.react-datepicker__day {
+  color: white;
+  
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
+  text-align: center;
+  margin: 0px;
+  transition: background-color 0.2s ease;
+}
+
+/* Hover effect */
+.react-datepicker__day:hover {
+  background-color: #FFAD28;
+  color: black;
+}
+
+/* Selected day */
+.react-datepicker__day--selected,
+.react-datepicker__day--in-selecting-range,
+.react-datepicker__day--in-range {
+  background-color: #FFAD28;
+  color: black;
+}
+
+/* Today highlight */
+.react-datepicker__day--today {
+  border: 1px solid #FFAD28;
+}
+
+/* Disabled days (e.g., past or unavailable) */
+.react-datepicker__day--disabled {
+  color: #6b7280; /* gray-500 */
+  cursor: not-allowed;
+}
+
+/* Hide the input completely since we're using inline mode */
+.react-datepicker__input-container input {
+  display: none !important;
+}
+
+/* Remove any input wrapper styling */
+.react-datepicker-wrapper {
+  display: block;
+}
+
+.react-datepicker__input-container {
+  display: none;
+}

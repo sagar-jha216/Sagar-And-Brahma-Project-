@@ -1,0 +1,205 @@
+.cstHeader {
+    /* background: #fff; */
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+.cstHeader a {
+    font-size: 14px;
+    color: #fff;
+    font-weight: normal;
+    margin-right: 10px;
+    /* padding: 0 10px;
+    
+    font-size: 16px;
+    font-weight: n
+    text-decoration: none;*/
+}
+
+.cstHeader a:hover,
+.cstHeader a.selected {
+    text-decoration: none;
+    color: #fff;
+
+}
+
+.cstHeader .menuLogoSec img {
+    vertical-align: middle;
+}
+
+.cstHeader .menuLogoSec img.siteTitleImg {
+    position: relative;
+    bottom: 2px;
+}
+
+.cstHeader .titleText {
+    /* font-size: 19px;
+    color: #181917;
+    font-weight: bold; */
+    position: relative;
+    width: 168px;
+    /* height: 30px; */
+    margin-left: 11px;
+    bottom: 1px;
+    margin-right: -18px;
+}
+
+.cstHeader .titleText img {
+    /* width: 219px; */
+    vertical-align: middle;
+}
+
+.sapLine {
+    background: gray;
+    display: inline-block;
+    height: 30px;
+    width: 1px;
+    margin: 0 11px;
+    position: relative;
+}
+
+.cstHeader .userDetails {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.cstHeader .userDetails .dropdownMenu {
+    position: absolute;
+    top: 100%;
+    padding-top: 5px;
+    right: 0;
+}
+
+.cstHeader .userDetails .userName {
+    color: #181917;
+    font-size: 14px;
+    font-weight: normal;
+    margin-right: 11px;
+    text-align: right;
+}
+
+.cstHeader .userDetails .dropdownMenu {
+    display: none;
+    position: absolute;
+    background-color: white;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+}
+
+.cstHeader .userDetails:hover .dropdownMenu {
+    display: block;
+}
+
+.arrowIcon {
+    transition: transform 0.3s;
+    cursor: pointer;
+    margin-left: 5px;
+
+}
+
+.cstHeader .userDetails:hover .arrowIcon {
+    transform: rotate(180deg);
+}
+
+.cstHeader .userDetails .dropdownMenu ul {
+    padding-left: 0;
+    border: 1px solid #444744;
+    background: #FFFFFF;
+    list-style: none;
+    margin-bottom: 0;
+    width: 155px;
+
+}
+
+.cstHeader .userDetails .dropdownMenu ul li {
+    border-bottom: 1px solid #444744;
+    padding: 6px 10px;
+}
+
+.cstHeader .userDetails .dropdownMenu ul li:last-child {
+    border-bottom: none;
+}
+
+.cstHeader .userDetails .dropdownMenu ul li .userNameText {
+    color: #000000;
+    font-size: 14px;
+}
+
+.cstHeader .userDetails .dropdownMenu ul li .userDesignation {
+    color: #6D706B;
+}
+
+.logoutText,
+.userDesignation {
+    font-size: 12px;
+}
+
+.logoutText {
+    color: #282A27;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.last-refresh {
+
+        height: 15px;
+        font: normal normal 12px Funnel Sans;
+        letter-spacing: 0px;
+        color: #171916;
+        margin-top: 20px;
+        margin-bottom: 20px;
+         margin-left: 270px;
+    }
+
+.userIcon {
+    top: 16px;
+    left: 1293px;
+    width: 40px;
+    height: 40px;
+    background: transparent 0% 0% no-repeat padding-box;
+    /* border: 2px solid #2ED751; */
+    opacity: 1;
+    border-radius: 50%;
+    
+    }
+
+.userNameRight {
+  display: block;   
+  text-align: right;
+  max-width: 200px;
+
+}
+
+.active-page-name {
+  padding-left: 5px;
+  white-space: nowrap;
+  top: 26px;
+left: 145px;
+height: 30px;
+text-align: left;
+font: normal normal bold 24px Funnel Sans;
+letter-spacing: 0px;
+color: #000000;
+opacity: 1;
+}
+
+.shrinkLogo-large {
+  /* height: 42px;
+  width: 230px; */
+  position: relative;
+  /* top: -8px; */
+  
+}
+
+.logo-large {
+  /* width: 90px;
+  height: 45px; */
+  cursor: pointer;
+  margin-left: 0;
+  margin-right: 20px;
+
+}

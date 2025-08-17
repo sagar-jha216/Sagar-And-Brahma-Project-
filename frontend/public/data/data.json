@@ -1,0 +1,274 @@
+{
+  "Global": {
+    "processData": [
+      {
+        "icon": "",
+        "title": "DC Inbound and Receiving",
+        "errorCount": 0,
+        "successCount": 0,
+        "storeChannel": [
+          { "id": 1, "name": "E-commerce" },
+          { "id": 2, "name": "Wholesale / B2B" }
+        ],
+        "store": [
+          { "id": 1, "name": "Store #1001 - NY" },
+          { "id": 2, "name": "Store #1002 - NJ" }
+        ]
+      },
+      {
+        "icon": "",
+        "title": "DC Storage Handling",
+        "errorCount": 0,
+        "successCount": 0,
+        "storeChannel": [
+          { "id": 3, "name": "Retail" },
+          { "id": 1, "name": "E-commerce" }
+        ],
+        "store": [
+          { "id": 1, "name": "Store #1001 - NY" },
+          { "id": 3, "name": "Store #2001 - TX" }
+        ]
+      },
+      {
+        "icon": "",
+        "title": "Transportation to a Store",
+        "errorCount": 0,
+        "successCount": 0,
+        "storeChannel": [
+          { "id": 4, "name": "Direct" },
+          { "id": 3, "name": "Retail" }
+        ],
+        "store": [
+          { "id": 2, "name": "Store #1002 - NJ" },
+          { "id": 4, "name": "Store #2002 - FL" }
+        ]
+      },
+      {
+        "icon": "",
+        "title": "Store Inbound and Receiving",
+        "errorCount": 0,
+        "successCount": 0,
+        "storeChannel": [
+          { "id": 2, "name": "Wholesale / B2B" }
+        ],
+        "store": [
+          { "id": 1, "name": "Store #1001 - NY" }
+        ]
+      },
+      {
+        "icon": "",
+        "title": "Backroom Handling",
+        "errorCount": 0,
+        "successCount": 0,
+        "storeChannel": [
+          { "id": 3, "name": "Retail" }
+        ],
+        "store": [
+          { "id": 3, "name": "Store #2001 - TX" }
+        ]
+      },
+      {
+        "icon": "",
+        "title": "In-Store/Shelf Replenishment & Display",
+        "errorCount": 2,
+        "successCount": 0,
+        "storeChannel": [
+          { "id": 1, "name": "E-commerce" },
+          { "id": 3, "name": "Retail" }
+        ],
+        "store": [
+          { "id": 2, "name": "Store #1002 - NJ" },
+          { "id": 4, "name": "Store #2002 - FL" }
+        ]
+      },
+      {
+        "icon": "",
+        "title": "Checkout & POS",
+        "errorCount": 0,
+        "successCount": 0,
+        "storeChannel": [
+          { "id": 5, "name": "Franchise" }
+        ],
+        "store": [
+          { "id": 1, "name": "Store #1001 - NY" }
+        ]
+      },
+      {
+        "icon": "",
+        "title": "Returns and Reverse Logistics",
+        "errorCount": 1,
+        "successCount": 0,
+        "storeChannel": [
+          { "id": 2, "name": "Wholesale / B2B" }
+        ],
+        "store": [
+          { "id": 2, "name": "Store #1002 - NJ" }
+        ]
+      }
+    ],
+    "shrinkHotspots": [
+      { "name": "Evergreen Market, Bellevue", "amount": "$24,756.78" },
+      { "name": "Cascade Fresh Mart, Capitol Hill", "amount": "$13,349.99" },
+      { "name": "Soundview Grocers, Northgate", "amount": "$62,083.40" }
+    ],
+    "rootCauses": [
+      { "cause": "Mishandling Return :", "impact": "$24,756.78" },
+      { "cause": "Produce near expiry :", "impact": "$13,349.99" },
+      { "cause": "Missed scan pattern :", "impact": "$62,083.40" }
+    ],
+    "shrinkImpactValues": {
+      "totalShrink": "$263,045",
+      "shrinkPercent": "6.3%",
+      "topDriver": "Poor Inventory Allocation",
+      "driverPercent": "ISSUES: 2"
+    },
+    "quickActions": [
+      { "title": "$12,000K salvage risk flagged in Seattle #421", "location": "Dairy | Evergreen Market, Bellevue" },
+      { "title": "$38K at risk, 25 days shelf life left #857", "location": "Frozen Poultry | Cascade Fresh, Capitol Hill" },
+      { "title": "Return cost / salvage for SKU 8532A", "location": "Electronics | Gales DC | Returns Analyst" }
+    ],
+    "modalDataByProcess": {
+      "In-Store/Shelf Replenishment & Display": {
+        "title": "In-Store/Shelf Replenishment & Display",
+        "issues": [
+          {
+            "id": 1,
+            "title": "ISSUE 1 : Lower Sell-Through Rate",
+            "description": [
+              { "title": "3,600 units", "info": " of WAFR123 – Honey Butter Wafers is not selling due to lower Sell-through rate against the plan in the Walmart Dallas." },
+              { "title": "Shelf life remaining:", "info": "22 days" },
+              { "title": "Sell-through rate at DC :", "info": "14 units per day" },
+              { "title": "Cost Price :", "info": "$5" }
+            ],
+            "potentialLossMitigation": "$12,240",
+            "remediation": [
+              { "id": "01", "title": "Inter-Store Transfer of 2,000 Units to Walmart Arlington where", "subtitle": "Sell-through rate : 200 units per day, Stock level : 1000 units", "marginVariance": "44%", "lossMitigation": "$8,000" },
+              { "id": "02", "title": "15% Clearance on 1,600 Units at Walmart Dallas DC", "subtitle": "", "marginVariance": "35%", "lossMitigation": "$4,240" }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "ISSUE 2 : Seasonal Overstock",
+            "description": [{ "title": "2,400", "info": "units of a seasonal item - Holiday Decor LED Easter Garland (SKU: HLD456) did not sell during the season." }],
+            "potentialLossMitigation": "$12,000",
+            "remediation": [
+              { "id": "01", "title": "Sell 2,400 units to Liquidation.com at 50% discount.", "subtitle": "", "marginVariance": "20% ($2,400)", "lossMitigation": "$12,000" },
+              { "id": "02", "title": "Donation with Tax Credit in Good360.com channel", "subtitle": "", "marginVariance": "-400% (-$7,680)", "lossMitigation": "$1,920" }
+            ]
+          }
+        ]
+      },
+      "Returns and Reverse Logistics": {
+        "title": "Returns and Reverse Logistics",
+        "issues": [
+          {
+            "id": 1,
+            "title": "ISSUE 1",
+            "description": [
+              { "title": "20 units of Duracell Optimum AA Batteries (50-pack) in a 100 carton lot - size", "info": "" },
+              { "title": "Status:", "info": "Return initiated" },
+              { "title": "Reason Code:", "info": "Return by Customer due to poor packaging" },
+              { "title": "Condition:", "info": "Units are unopened and within return window" }
+            ],
+            "potentialLossMitigation": "$50,000",
+            "remediation": [
+              { "id": "01", "title": "Credit memo back to Duracell Inc. at 100% return value (RTV) of cost price", "subtitle": "", "marginVariance": "0% ($0)", "lossMitigation": "$50,000 (100% recovery)" },
+              { "id": "02", "title": "Resale via BULQ.com (mixed electronics) at $9 per pack", "subtitle": "", "marginVariance": "-11% (-$5,000)", "lossMitigation": "$45,000" },
+              { "id": "03", "title": "Donation to Chicago Homeless Shelters leading to Tax write-off of $2 per pack", "subtitle": "", "marginVariance": "-400% (-$40,000)", "lossMitigation": "$10,000" }
+            ]
+          }
+        ]
+      }
+    }
+  },
+
+  "South": {
+    "processData": [
+      { "icon": "", "title": "DC Inbound and Receiving", "errorCount": 1, "successCount": 1, "storeChannel": [{ "id": 2, "name": "Wholesale / B2B" }], "store": [{ "id": 3, "name": "Store #2001 - TX" }] },
+      { "icon": "", "title": "DC Storage Handling", "errorCount": 0, "successCount": 2, "storeChannel": [{ "id": 3, "name": "Retail" }], "store": [{ "id": 4, "name": "Store #2002 - FL" }] },
+      { "icon": "", "title": "Transportation to a Store", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 4, "name": "Direct" }], "store": [{ "id": 3, "name": "Store #2001 - TX" }] },
+      { "icon": "", "title": "Store Inbound and Receiving", "errorCount": 0, "successCount": 1, "storeChannel": [{ "id": 1, "name": "E-commerce" }], "store": [{ "id": 4, "name": "Store #2002 - FL" }] },
+      { "icon": "", "title": "Backroom Handling", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 3, "name": "Retail" }], "store": [{ "id": 3, "name": "Store #2001 - TX" }] },
+      { "icon": "", "title": "In-Store/Shelf Replenishment & Display", "errorCount": 1, "successCount": 0, "storeChannel": [{ "id": 3, "name": "Retail" }], "store": [{ "id": 4, "name": "Store #2002 - FL" }] },
+      { "icon": "", "title": "Checkout & POS", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 5, "name": "Franchise" }], "store": [{ "id": 3, "name": "Store #2001 - TX" }] },
+      { "icon": "", "title": "Returns and Reverse Logistics", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 2, "name": "Wholesale / B2B" }], "store": [{ "id": 4, "name": "Store #2002 - FL" }] }
+    ],
+    "shrinkHotspots": [
+      { "name": "South Market A", "amount": "$8,900.00" },
+      { "name": "South Market B", "amount": "$5,350.00" },
+      { "name": "South Market C", "amount": "$12,200.00" }
+    ],
+    "rootCauses": [
+      { "cause": "Poor Receiving :", "impact": "$8,900.00" },
+      { "cause": "Incorrect Storage :", "impact": "$5,350.00" },
+      { "cause": "Damage in transit :", "impact": "$12,200.00" }
+    ],
+    "shrinkImpactValues": { "totalShrink": "$26,450", "shrinkPercent": "4.1%", "topDriver": "Damage in transit", "driverPercent": "ISSUES: 1" },
+    "quickActions": [
+      { "title": "South: Transfer stock to TX #2001", "location": "Dairy | South Market A" },
+      { "title": "$38K at risk, 25 days shelf life left #857", "location": "Frozen Poultry | Cascade Fresh, Capitol Hill" },
+      { "title": "Return cost / salvage for SKU 8532A", "location": "Electronics | Gales DC | Returns Analyst" }
+    ],
+    "modalDataByProcess": {}
+  },
+
+  "East": {
+    "processData": [
+      { "icon": "", "title": "DC Inbound and Receiving", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 1, "name": "E-commerce" }], "store": [{ "id": 5, "name": "Store #3001 - MA" }] },
+      { "icon": "", "title": "DC Storage Handling", "errorCount": 0, "successCount": 1, "storeChannel": [{ "id": 2, "name": "Wholesale / B2B" }], "store": [{ "id": 6, "name": "Store #3002 - CT" }] },
+      { "icon": "", "title": "Transportation to a Store", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 4, "name": "Direct" }], "store": [{ "id": 5, "name": "Store #3001 - MA" }] },
+      { "icon": "", "title": "Store Inbound and Receiving", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 3, "name": "Retail" }], "store": [{ "id": 6, "name": "Store #3002 - CT" }] },
+      { "icon": "", "title": "Backroom Handling", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 3, "name": "Retail" }], "store": [{ "id": 5, "name": "Store #3001 - MA" }] },
+      { "icon": "", "title": "In-Store/Shelf Replenishment & Display", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 1, "name": "E-commerce" }], "store": [{ "id": 6, "name": "Store #3002 - CT" }] },
+      { "icon": "", "title": "Checkout & POS", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 5, "name": "Franchise" }], "store": [{ "id": 5, "name": "Store #3001 - MA" }] },
+      { "icon": "", "title": "Returns and Reverse Logistics", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 2, "name": "Wholesale / B2B" }], "store": [{ "id": 6, "name": "Store #3002 - CT" }] }
+    ],
+    "shrinkHotspots": [
+      { "name": "East Market A", "amount": "$6,100.00" },
+      { "name": "East Market B", "amount": "$11,700.00" },
+      { "name": "East Market C", "amount": "$9,900.00" }
+    ],
+    "rootCauses": [
+      { "cause": "Shelf Misplacement :", "impact": "$6,100.00" },
+      { "cause": "Expiry near :", "impact": "$11,700.00" },
+      { "cause": "Counting error :", "impact": "$9,900.00" }
+    ],
+    "shrinkImpactValues": { "totalShrink": "$27,700", "shrinkPercent": "3.8%", "topDriver": "Expiry near", "driverPercent": "ISSUES: 2" },
+    "quickActions": [
+      { "title": "East: Check expiry at MA #3001", "location": "Produce | East Market B" },
+       { "title": "$38K at risk, 25 days shelf life left #857", "location": "Frozen Poultry | Cascade Fresh, Capitol Hill" },
+      { "title": "Return cost / salvage for SKU 8532A", "location": "Electronics | Gales DC | Returns Analyst" }
+    ],
+    "modalDataByProcess": {}
+  },
+
+  "West": {
+    "processData": [
+      { "icon": "", "title": "DC Inbound and Receiving", "errorCount": 0, "successCount": 1, "storeChannel": [{ "id": 1, "name": "E-commerce" }], "store": [{ "id": 7, "name": "Store #4001 - CA" }] },
+      { "icon": "", "title": "DC Storage Handling", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 3, "name": "Retail" }], "store": [{ "id": 8, "name": "Store #4002 - WA" }] },
+      { "icon": "", "title": "Transportation to a Store", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 4, "name": "Direct" }], "store": [{ "id": 7, "name": "Store #4001 - CA" }] },
+      { "icon": "", "title": "Store Inbound and Receiving", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 3, "name": "Retail" }], "store": [{ "id": 8, "name": "Store #4002 - WA" }] },
+      { "icon": "", "title": "Backroom Handling", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 3, "name": "Retail" }], "store": [{ "id": 7, "name": "Store #4001 - CA" }] },
+      { "icon": "", "title": "In-Store/Shelf Replenishment & Display", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 1, "name": "E-commerce" }], "store": [{ "id": 8, "name": "Store #4002 - WA" }] },
+      { "icon": "", "title": "Checkout & POS", "errorCount": 0, "successCount": 1, "storeChannel": [{ "id": 5, "name": "Franchise" }], "store": [{ "id": 7, "name": "Store #4001 - CA" }] },
+      { "icon": "", "title": "Returns and Reverse Logistics", "errorCount": 0, "successCount": 0, "storeChannel": [{ "id": 2, "name": "Wholesale / B2B" }], "store": [{ "id": 8, "name": "Store #4002 - WA" }] }
+    ],
+    "shrinkHotspots": [
+      { "name": "West Market A", "amount": "$15,200.00" },
+      { "name": "West Market B", "amount": "$9,000.00" },
+      { "name": "West Market C", "amount": "$20,400.00" }
+    ],
+    "rootCauses": [
+      { "cause": "Missed scan pattern :", "impact": "$20,400.00" },
+      { "cause": "Mishandling :", "impact": "$15,200.00" },
+      { "cause": "Poor packing :", "impact": "$9,000.00" }
+    ],
+    "shrinkImpactValues": { "totalShrink": "$44,600", "shrinkPercent": "7.0%", "topDriver": "Missed scan pattern", "driverPercent": "ISSUES: 3" },
+    "quickActions": [
+      { "title": "West: Audit POS at CA #4001", "location": "POS | West Market A" },
+      { "title": "$38K at risk, 25 days shelf life left #857", "location": "Frozen Poultry | Cascade Fresh, Capitol Hill" },
+      { "title": "Return cost / salvage for SKU 8532A", "location": "Electronics | Gales DC | Returns Analyst" }
+    ],
+    "modalDataByProcess": {}
+  }
+}

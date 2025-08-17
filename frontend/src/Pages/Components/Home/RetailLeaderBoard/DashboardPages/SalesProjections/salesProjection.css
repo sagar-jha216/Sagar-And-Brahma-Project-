@@ -1,0 +1,150 @@
+.salesContainer {
+  background: #fff2df 0% 0% no-repeat padding-box;
+  border: 1px solid #ffad2866;
+  height: 104px;
+  /* overflow:hidden; */
+}
+
+.postionChart {
+  right: 5px;
+  top: 0px;
+}
+
+.smallWidgetdimension {
+  width: 100px;
+  height: 130px;
+}
+
+.smallWidgetpostionChart {
+  right: 5px;
+  top: -15px;
+}
+
+.salesWidgetHeader {
+  font-size: 14px;
+  text-transform: capitalize;
+  font-weight: normal;
+  color: black;
+}
+
+.salesWidgetValue {
+  font-size: 24px;
+  font-weight: bold;
+  color: black;
+}
+
+.cpiAlignment {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.cpiFontSize {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.cpiBottomContainer {
+  background-color: #f2f2f2;
+  color: #000000;
+  font-size: 14px;
+  font-weight: 300;
+  padding: 9px 16px;
+}
+
+.cpicontentMargin {
+  margin-left: 10px;
+}
+
+.CpiMainContainerwidth {
+  width: 380px;
+}
+
+.cpiHeader {
+  font-size: 14px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+.cpiw100 {
+  width: 100%;
+  margin: 0px 0px 10px 0px !important;
+}
+
+.kPICard {
+  z-index: 9;
+  color: #171916;
+  width: 171px;
+  height: 100px;
+  position: relative;
+  background: var(--unnamed-color-ffffff) 0% 0% no-repeat padding-box;
+  border: 1px solid var(--unnamed-color-cfcfcf);
+  background: #ffffff 0% 0% no-repeat padding-box;
+  border: 1px solid #cfcfcf;
+  opacity: 1;
+}
+.kPICard .bottomText{
+  position: absolute;
+  bottom: 10px;
+}
+
+.chartBox canvas {
+  width: 50px;
+  height: 50px;
+}
+
+canvas {
+  border: none !important;
+  outline: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.kpiTitle {
+  color: #171916;
+  text-transform: capitalize;
+  font-size: 11px;
+  font-weight: 700 !important;
+  margin-bottom: 5px;
+}
+
+.dateVrText {
+  color: #000000;
+  text-transform: capitalize;
+  font-size: 8px;
+}
+
+.valuePer {
+  color: #000000;
+  font-size: 22px;
+}
+
+.shrinktext {
+  color: #000000;
+  text-transform: capitalize;
+  font-size: 11px;
+  font-weight: normal;
+  padding-left: 7px;
+}
+
+.dropContentBox {
+  background: #282a27 0% 0% no-repeat padding-box;
+  border-radius: 12px;
+  font-size: 14px;
+  width: 183px;
+  color: #ffffff;
+  z-index: 999;
+}
+
+.itemsText {
+  border: none;
+  outline: none;
+}
+.doughnutChartBOx canvas {
+  width: 146px !important;
+  height: 148px !important;
+  margin: 0 auto;
+  text-align: center;
+}

@@ -1,0 +1,95 @@
+.background {
+  background: #f2f2f2;
+  background: #f2f2f2;
+  /* Break out of the container constraints */
+}
+
+.card-box {
+  background: var(--unnamed-color-ffffff) 0% 0% no-repeat padding-box;
+  border: 1px solid var(--unnamed-color-cfcfcf);
+  background: #ffffff 0% 0% no-repeat padding-box;
+  border: 1px solid #cfcfcf;
+  opacity: 1;
+}
+
+.title-move-up {
+  padding-top: 1px;
+  transform: translateY(-6px);
+  white-space: normal; /* allow wrap */
+  overflow: visible; /* allow text to show */
+  line-height: 1.2; /* adjust line height if needed */
+  max-height: none; /* remove height limits */
+}
+
+.suffix-style {
+  color: var(--unnamed-color-6d706b);
+  text-align: left;
+  font: normal normal bold 14px/18px Funnel Sans;
+  letter-spacing: 0px;
+  color: #6d706b;
+}
+
+.table-container {
+  background: var(--unnamed-color-ffffff) 0% 0% no-repeat padding-box;
+  border: 1px solid var(--unnamed-color-cfcfcf);
+  background: #ffffff 0% 0% no-repeat padding-box;
+  border: 1px solid #cfcfcf;
+  border-radius: 8px;
+  opacity: 1;
+}
+
+.table-text {
+  text-align: left;
+  font: normal normal normal 14px/36px Funnel Sans;
+  letter-spacing: -0.2px;
+  color: #231f20;
+  opacity: 1;
+}
+
+.graph-title {
+  color: var(--unnamed-color-171916);
+  text-align: left;
+  font: normal normal 600 14px/28px Funnel Sans;
+  letter-spacing: 0px;
+  color: #171916;
+  opacity: 1;
+}
+
+.table-cell {
+  @apply px-2 py-1 border-r leading-tight break-words;
+}
+.table-title {
+  color: var(--unnamed-color-171916);
+  text-align: left;
+  font: normal normal 600 14px/28px Funnel Sans;
+  letter-spacing: 0px;
+  color: #171916;
+  opacity: 1;
+}
+
+.card-text {
+  color: var(--unnamed-color-171916);
+  text-align: left;
+  font: normal normal 600 12px/15px Funnel Sans;
+  letter-spacing: 0px;
+  color: #171916;
+  text-transform: capitalize;
+  opacity: 1;
+  margin-top: -4px;
+}
+
+.card-amount {
+  color: var(--unnamed-color-000000);
+  text-align: left;
+  font: normal normal bold 22px/28px Funnel Sans;
+  letter-spacing: 0px;
+  color: #000000;
+  opacity: 1;
+}
+
+.graph-box{
+  background: #FFFFFF 0% 0% no-repeat padding-box;
+border: 1px solid #CFCFCF;
+border-radius: 8px;
+opacity: 1;
+}

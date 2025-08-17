@@ -1,0 +1,86 @@
+/* .login-wrapper {
+	min-height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+	background-color: #f2f2f2;
+} */
+.login-section {
+	/* margin-top: 10%; */
+	/*width: '100%';
+	max-width: '480px'; */
+	border: none;
+	border-radius: 10px;
+	/* background: rgba(255, 255, 255, 0.1) !important; */
+	padding: 55px 45px;
+	background: #282A27;
+}
+.login-section h5 {
+	font-size: 24px;
+	margin-bottom: 12px;
+}
+.arrowIconCls {
+	display: flex;
+	margin-top: 60px;
+}
+
+.login-page .leftLoginSection {
+	margin: 0 auto;
+}
+.login-page .inputFieldCls {
+	/* height: 40px; */
+	font-size: 16px;
+	font-weight: 300;
+	border-radius: 20px;
+	width: 100%;
+	padding: 7px 15px;
+	color: #000000;
+}
+.login-page .form-label {
+	font-size: 16px;
+	font-weight: 300;
+	margin-bottom: 0.3rem;
+	display: block;
+}
+.login-page .demo-btn {
+	height: 40px !important;
+	border-radius: 20px;
+	width: 100%;
+}
+.error-cls {
+	font: size 16px;
+	margin-bottom: 12px;
+}
+.rightVideoSection .overlay {
+	background: transparent linear-gradient(180deg, #FFAD28 0%, #FF4F59 100%) 0% 0% no-repeat padding-box;
+	position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 9;
+    width: 50%;
+    height: 642px;
+    pointer-events: none;
+    border-radius: 0px 0px 300px 300px;
+    opacity: .30;
+}
+.rightVideoSection .loginVideoBg{
+	width: 50%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    object-fit: cover;
+    height: 642px;
+}
+.maskWhiteImg{
+	position: absolute;
+    left: 49%;
+    bottom: 0;
+    z-index: 0;
+    width: 316px;
+    height: auto;
+}
+
+.loginOrangMask{
+	bottom: 0;
+}
