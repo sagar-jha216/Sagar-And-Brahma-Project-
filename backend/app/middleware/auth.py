@@ -30,7 +30,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return username
-    except jwt.PyJWTError:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",

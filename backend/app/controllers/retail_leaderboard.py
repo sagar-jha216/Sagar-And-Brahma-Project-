@@ -173,7 +173,7 @@ async def get_shrinkage_metrics(
     categories = []
     for stat in category_stats:
         category = stat.category
-        shrinkage = round(float(stat.avg_shrinkage or 0), 1)
+        shrinkage = round(float(stat.avg_shrinkage or 0), 2)
         
         # Map category names
         display_name = category
@@ -196,7 +196,7 @@ async def get_shrinkage_metrics(
     
     return {
         "categories": categories,
-        "in_transit_loss_rate": round(in_transit_loss, 1),
+        "in_transit_loss_rate": round(in_transit_loss, 2),
         "transit_status": get_status(in_transit_loss, transit_benchmarks),
         "transit_benchmarks": transit_benchmarks,
         "benchmarking_source": "NRF"
