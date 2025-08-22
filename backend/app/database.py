@@ -1,16 +1,19 @@
-"""
-Database compatibility layer - maintains backward compatibility
-"""
+# app/database.py
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker,Session
+# from app.config import settings
 
-# Import everything from models to maintain existing imports
-from app.models import *
+DATABASE_URL = "sqlite:///./shrink_sense.db"
 
-# Maintain backward compatibility for existing imports
-from app.models.base import Base, engine, SessionLocal, get_db, create_tables
-from app.models.user import User, hash_password, verify_password, create_default_admin, update_user_activity
-from app.models.product import ProductMaster
-from app.models.store import Store
-from app.models.inventory import Inventory
-from app.models.returns import Returns
-from app.models.partners import NGOPartner, LiquidationPartner
-from app.models.recommendations import RemediationRecommendation, ReturnRemediation
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+Base = declarative_base()
+
+# dependency
+def get_db() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

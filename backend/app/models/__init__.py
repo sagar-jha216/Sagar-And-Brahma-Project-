@@ -1,19 +1,9 @@
-"""
-Models package for ShrinkSense Backend
-"""
-
-from .base import Base, engine, SessionLocal, get_db, create_tables
-from .user import User, hash_password, verify_password, create_default_admin, update_user_activity
-from .product import ProductMaster
-from .store import Store
+from app.database import Base
+from .user import User
 from .inventory import Inventory
-from .returns import Returns
-from .partners import NGOPartner, LiquidationPartner
-from .recommendations import RemediationRecommendation, ReturnRemediation
-
-__all__ = [
-    "Base", "engine", "SessionLocal", "get_db", "create_tables",
-    "User", "ProductMaster", "Store", "Inventory", "Returns", 
-    "NGOPartner", "LiquidationPartner", "RemediationRecommendation", "ReturnRemediation",
-    "hash_password", "verify_password", "create_default_admin", "update_user_activity"
-]
+from .stores import Store
+from .ngo_partners import NGOPartner
+from .liquidation_partners import LiquidationPartner
+from .returns import Return
+from .return_remediation import ReturnRemediation
+from .remediation_recommendations import RemediationRecommendation
