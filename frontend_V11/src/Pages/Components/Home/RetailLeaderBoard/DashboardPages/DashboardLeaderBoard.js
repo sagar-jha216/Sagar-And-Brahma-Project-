@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -6,52 +6,55 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../../CommonComponents/ui/select";
+
 import { useDashboard } from "../../../../../Data/DashboardContext";
 import "../LeaderBoard.css";
 import SalesProjection from "./SalesProjections";
 import { Filters } from "./Filters";
-
 import DoughnutChartDashboard from "./ChartData/DoughnutChartDashboard";
+
 
 import {
   TopSupplierShrinkageChart,
   BottomSupplierShrinkageChart,
 } from "./ChartData/SupplierShrinkageChart";
 import BarChartDashboard from "./ChartData/BarChartDashboard";
+import img3 from '../../../../../assets/CommandCenterImage/info-icon.svg';
 import SupplierShrinkageChart from "./ChartData/SupplierShrinkageChart";
 
 import ChartDataComp from "./ChartData/ChartDataComp";
-// import { MetricCard } from '@/components/dashboard/MetricCard';
-// import { DashboardBarChart } from '@/components/dashboard/BarChart';
-// import { DonutChart } from '@/components/dashboard/DonutChart';
-// import { HorizontalBarChart } from '@/components/dashboard/HorizontalBarChart';
-// import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line } from 'recharts';
-// import { Card, CardContent } from '@/components/ui/card';
+import DashboardGraphsService from "../../../../../services/dashboardGraphsService";
+
+
 
 const DashboardLeaderBoard = () => {
   const { chartData } = useDashboard();
   const [selectedCategory, setSelectedCategory] = useState("Produce (Fresh)");
 
   // inside DashboardLeaderBoard component (replace the current BarChartCard)
-  const BarChartCard = ({ title }) => (
-    <div className="flex-1 bg-white shadow-md rounded-lg p-4 relative ">
+  const BarChartCard = ({ title,data }) => {
+// console.log(data,"hello")
+
+    return (
+      <div className="flex-1 bg-white shadow-md rounded-lg p-4 relative ">
       <h3 className="text-lg font-semibold mb-4 titleTextChart">{title}</h3>
       {/* pass full filters object so chart can use all filters */}
-      <BarChartDashboard filters={filters} />
+      <BarChartDashboard filters={filters} data={data} />
     </div>
-  );
+    )
+  };
 
-  const SupplierShrinkageCard = ({ title, ChartComponent, filters }) => (
+  const SupplierShrinkageCard = ({ title, ChartComponent, filters,data }) => (
     <div className="flex-1 bg-white shadow-md rounded-lg p-4 relative">
       <h3 className="text-lg font-semibold mb-4 titleTextChart">{title}</h3>
-      <ChartComponent filters={filters} />
+      <ChartComponent filters={filters} data={data}/>
     </div>
   );
 
-  const DoughnutChartCard = ({ title, filters }) => (
+  const DoughnutChartCard = ({ title, filters,data }) => (
   <div className="flex-1 bg-white shadow-md rounded-lg p-4 relative doughnutChartBOx min-h-[290px]">
     <h3 className="text-lg font-semibold mb-4 titleTextChart">{title}</h3>
-    <DoughnutChartDashboard filters={filters} /> 
+    <DoughnutChartDashboard filters={filters} data={data} /> 
     <div className="absolute bottom-2 right-2 text-sm text-gray-600 bottomTitle">
       Total COGS ($) = $26.4M
     </div>
@@ -98,6 +101,32 @@ const DashboardLeaderBoard = () => {
     { name: "Damaged", value: chartData.inventoryOverview.damaged },
     { name: "Products Expired", value: chartData.inventoryOverview.expired },
   ];
+
+  const [dashboardData, setDashboardData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadDashboards = async () => {
+      try {
+        const response = await DashboardGraphsService.fetchDashboardGraphs(filters);
+        setDashboardData(response);
+        console.log(response)
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboards();
+  }, [filters]); 
+
+  // re-fetch when filters change
+  if (loading) return <div>Loading KPIs...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+
   return (
     <div className="">
       {/* Filter Controls */}
@@ -111,7 +140,8 @@ const DashboardLeaderBoard = () => {
         {/* Alert Banner */}
         <div className="bg-success border-l-4 border-success px-2 py-2 addSection ">
           <div className="flex items-center ">
-            <div className="w-4 h-4 bg-green-500 rounded-full mr-3"></div>
+            {/* <div className="w-4 h-4 bg-green-500 rounded-full mr-3"></div> */}
+            <img src={img3} alt="info-icon" className="inline-block h-3.5 w-3.5 mr-1" />
             <span className="text-sm text-green-800 addText">
               <strong>Green Giant</strong> is outperforming mixed greens in the
               Northeast region leading to a <strong>19% shrink</strong>. Sales
@@ -122,18 +152,20 @@ const DashboardLeaderBoard = () => {
         </div>
 
         <div className="mt-2 ">
-          <SalesProjection filters={filters} />
+        <SalesProjection filters={filters} />
         </div>
+
         {/* Top Section */}
         <div className="mt-4">
           <div className="flex flex-col lg:flex-row gap-6 min-h-[290px] ">
-            <BarChartCard title="Wastage By Merch Category" />
-            <DoughnutChartCard title="Waste % of COGS" filters={filters} />
+            <BarChartCard title="Wastage By Merch Category" data={dashboardData?.wastage_by_month_cat}/>
+            <DoughnutChartCard title="Waste % of COGS" filters={filters} data={dashboardData["Waste_%_of_Net_Sales"]}/>
 
             <SupplierShrinkageCard
               title="Suppliers with highest Shrinkage % of Net Sales"
               ChartComponent={TopSupplierShrinkageChart}
               filters={filters}
+              data={dashboardData["Top_Suppliers_By_Shrinkage"]}
             />
           </div>
         </div>
@@ -144,12 +176,17 @@ const DashboardLeaderBoard = () => {
             <DoughnutChartCard
               title="Non Sellable Inventory Overview"
               filters={filters}
+              data={dashboardData["Non_Sellable_Units"]}
             />
-            <BarChartCard title="Sales($) vs Shrinkage % vs Salvage % " />
+            <BarChartCard title="Sales($) vs Shrinkage % vs Salvage % " 
+              // data={dashboardData["Sales_Shrinkage_Salvage"]}
+              data={dashboardData?.wastage_by_month_cat}
+            />
             <SupplierShrinkageCard
               title="Top 10 SKU's Shrinkage % by Sales"
               ChartComponent={BottomSupplierShrinkageChart}
               filters={filters}
+              data={dashboardData["Top_SKUs_By_Shrinkage"]}
             />
           </div>
         </div>

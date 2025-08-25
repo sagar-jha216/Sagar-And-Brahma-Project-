@@ -1,0 +1,153 @@
+// Frontend\src\services\shrinkageService.js
+const API_BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:8000';
+
+class ShrinkageService {
+  static async fetchRetailLeaderBoardData() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/retail-leader-board`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Validate API response structure
+      this.validateApiResponse(data);
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching retail leader board data:', error);
+      throw error;
+    }
+  }
+
+  // Validate API response has expected structure and data
+  static validateApiResponse(apiData) {
+    const { shrinkage_by_category, in_transit_loss_rate } = apiData;
+    
+    if (!shrinkage_by_category || typeof shrinkage_by_category !== 'object') {
+      throw new Error('Invalid API response: missing shrinkage_by_category');
+    }
+    
+    if (typeof in_transit_loss_rate !== 'number') {
+      throw new Error('Invalid API response: missing or invalid in_transit_loss_rate');
+    }
+    
+    // Check for required categories
+    const requiredCategories = ['Produce (Fresh)', 'Dry Goods', 'General Merchandise'];
+    const missingCategories = requiredCategories.filter(cat => 
+      !(cat in shrinkage_by_category) || typeof shrinkage_by_category[cat] !== 'number'
+    );
+    
+    if (missingCategories.length > 0) {
+      console.warn(`Missing or invalid categories in API response: ${missingCategories.join(', ')}`);
+      // Fill missing categories with 0
+      missingCategories.forEach(cat => {
+        shrinkage_by_category[cat] = 0;
+      });
+    }
+    
+    // Log actual vs expected values for debugging
+    console.log('API Response Validation:', {
+      expectedCategories: requiredCategories,
+      receivedCategories: Object.keys(shrinkage_by_category),
+      shrinkageValues: shrinkage_by_category,
+      inTransitLossRate: in_transit_loss_rate
+    });
+  }
+
+  // Transform API data to match frontend format
+  static transformToFrontendFormat(apiData) {
+    const { shrinkage_by_category, in_transit_loss_rate } = apiData;
+
+    return {
+      LeaderBoardTopContent: {
+        title: "Retail Leader Board",
+        subtitle: "INVENTORY INBOUND TO STORE VIEW",
+        description: "Offers visibility into shrinkage across stores, regions, and categories"
+      },
+      shrinkageMetrics: [
+        {
+          id: 1,
+          category: "Produce (Fresh)",
+          percentage: `${shrinkage_by_category["Produce (Fresh)"]}%`,
+          value: shrinkage_by_category["Produce (Fresh)"],
+          ranges: {
+            low: "1%",
+            medium: "7%",
+            high: "15%"
+          },
+          distribution: this.calculateDistribution(shrinkage_by_category["Produce (Fresh)"], [3, 7, 12]),
+          icon: "Package"
+        },
+        {
+          id: 2,
+          category: "Dry Goods",
+          percentage: `${shrinkage_by_category["Dry Goods"]}%`,
+          value: shrinkage_by_category["Dry Goods"],
+          ranges: {
+            low: "3.5%",
+            medium: "6.5%",
+            high: "12%"
+          },
+          distribution: this.calculateDistribution(shrinkage_by_category["Dry Goods"], [3.5, 6.5, 12]),
+          icon: "Box"
+        },
+        {
+          id: 3,
+          category: "General Merchandise",
+          percentage: `${shrinkage_by_category["General Merchandise"]}%`,
+          value: shrinkage_by_category["General Merchandise"],
+          ranges: {
+            low: "0%",
+            medium: "1.8%",
+            high: "5%"
+          },
+          distribution: this.calculateDistribution(shrinkage_by_category["General Merchandise"], [1, 1.8, 2.5]),
+          icon: "ShoppingCart"
+        }
+      ],
+      inTransit: {
+        title: "In-Transit Loss Rate",
+        percentage: `${in_transit_loss_rate}%`,
+        value: in_transit_loss_rate,
+        ranges: {
+          low: "4%",
+          medium: "7%",
+          high: "15%"
+        },
+        distribution: this.calculateDistribution(in_transit_loss_rate, [4, 7, 12])
+      },
+      legend: [
+        { color: "green", label: "Best in Class" },
+        { color: "yellow", label: "Median" },
+        { color: "red", label: "Laggard" }
+      ],
+      dataSource: "Benchmarking Source: AWP"
+    };
+  }
+
+  // Calculate color distribution based on value and thresholds
+  static calculateDistribution(value, thresholds) {
+    const [low, medium, high] = thresholds;
+    
+    if (value <= low) {
+      return { green: 85, yellow: 10, red: 5 };
+    } else if (value <= medium) {
+      return { green: 45, yellow: 35, red: 20 };
+    } else if (value <= high) {
+      return { green: 25, yellow: 25, red: 50 };
+    } else {
+      return { green: 15, yellow: 15, red: 70 };
+    }
+  }
+}
+
+export default ShrinkageService;

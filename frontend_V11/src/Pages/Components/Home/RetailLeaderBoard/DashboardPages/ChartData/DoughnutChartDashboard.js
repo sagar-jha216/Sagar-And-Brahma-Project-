@@ -31,7 +31,7 @@ const doughnutDataByRegion = {
   west: { wastage: 75, total: 100 },
 };
 
-const DoughnutChartDashboard = ({ filters }) => {
+const DoughnutChartDashboard = ({ filters,data }) => {
   const {
     category = "Produce (Fresh)",
     region = "north",
@@ -41,9 +41,9 @@ const DoughnutChartDashboard = ({ filters }) => {
     subCategory,
   } = filters;
 
-  // Pick values based on region (demo purpose)
-  const { wastage, total } =
-    doughnutDataByRegion[region.toLowerCase()] || doughnutDataByRegion.north;
+
+const wastage=data;
+const total=100;
 
   const doughnutData = {
     labels: ["Wastage", "Remaining"],

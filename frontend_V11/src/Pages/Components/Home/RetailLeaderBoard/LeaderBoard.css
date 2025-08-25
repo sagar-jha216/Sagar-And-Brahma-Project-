@@ -28,22 +28,25 @@
     font-weight: normal;
 }
 
-.chartBoxMain{
+.chartBoxMain {
     border: 1px solid #CFCFCF;
     border-radius: 8px;
     padding: 20px;
     background: #fff;
 }
-.titleTextChart{
+
+.titleTextChart {
     color: #171916;
     font-size: 14px;
     font-weight: 600;
 }
-.contentSecdasboard{
+
+.contentSecdasboard {
     background: #EFEFEF;
     overflow-x: hidden;
 }
-.bottomTitle{
+
+.bottomTitle {
     color: #171916;
     font-size: 11px;
     font-weight: normal;

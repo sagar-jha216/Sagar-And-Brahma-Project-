@@ -1,13 +1,52 @@
+import {useEffect,useState} from "react"
 import { AlertTriangle } from 'lucide-react';
 import MetricRow from './MetricRow';
 import ProgressBar from './ProgressBar';
 import homeIcon1 from '../../../../assets/homeImg01.svg';
 import arrowImg from '../../../../assets/arrowIcon.svg';
+import indicatorCatgoryPer from '../../../../assets/polygon-indicator.svg';
+import ShrinkageService from "../../../../services/shrinkageService";
 
 const LeaderDashboardCard = ({ data }) => {
-  const { LeaderBoardTopContent, shrinkageMetrics, inTransit, legend, dataSource } = data;
+  // const { LeaderBoardTopContent, shrinkageMetrics, inTransit, legend, dataSource } = data
+  const [leaderBoardData, setLeaderBoardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const apiData = await ShrinkageService.fetchRetailLeaderBoardData();
+        const transformedData = ShrinkageService.transformToFrontendFormat(apiData);
+        setLeaderBoardData(transformedData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    loadData();
+  }, []);
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!leaderBoardData) return null; // or a fallback UI
+  
+  const {LeaderBoardTopContent,shrinkageMetrics,inTransit,legend,dataSource}=leaderBoardData;
+
+  const ranges = inTransit.ranges
+    ? [parseFloat(inTransit.ranges.low), parseFloat(inTransit.ranges.medium), parseFloat(inTransit.ranges.high)]
+    : [0, 100];
+  const minRange = Math.min(...ranges);
+  const maxRange = Math.max(...ranges);
+  const rawPercentage = parseFloat(inTransit.percentage);
+  const clampedPercentage = Math.min(maxRange, Math.max(minRange, rawPercentage));
+  let relativePercentage = ((clampedPercentage - minRange) / (maxRange - minRange)) * 100;
+
+  const medium = parseFloat(inTransit.ranges?.medium?.replace('%', '') || 0);
+  if (clampedPercentage === medium) {
+    relativePercentage = 50;
+  }
 
   return (
     <div className="shadow-lg homeCardBox">
@@ -48,7 +87,7 @@ const LeaderDashboardCard = ({ data }) => {
           <div className=" items-center justify-between mb-1 homeTitleParentSec">
             <span className='homeSubTitleSec'>
               <span className="text-white text-sm font-medium mr-2">{inTransit.title}</span>
-              <span className="text-white text-sm font-bold">{inTransit.percentage}</span>
+              <span className="text-white text-sm font-bold colorOrg">{inTransit.percentage}</span>
             </span>
           </div>
           {/* <div className="w-full bg-gray-600 rounded-full h-2 mb-2">
@@ -77,6 +116,19 @@ const LeaderDashboardCard = ({ data }) => {
                 ranges={inTransit.ranges}
                 showLabels={true}
               />
+              <div className="relative w-full">
+                <img
+                  src={indicatorCatgoryPer}
+                  alt="Indicator"
+
+                  className="absolute indicatorImg w-4 h-4"
+                  style={{
+                    left: `${relativePercentage}%`,
+                    transform: 'translateX(-50%)',
+                  }}
+                  title={`${inTransit.percentage}`}
+                />
+              </div>
             </div>
 
           </div>

@@ -148,8 +148,68 @@ const barChartDataByCategoryAndRegion = {
 // -----------------------
 // BarChartDashboard component
 // -----------------------
-const BarChartDashboard = ({ filters = {} }) => {
-  // destructure filters (defaults provided)
+const BarChartDashboard = ({ filters = {},data }) => {
+
+const janFebData = data?.filter(item => {
+    const month = item.Month.split("-")[1]; // Extract MM part
+    return month;
+});
+// Sort by Month ascending
+janFebData.sort((a, b) => a.Month.localeCompare(b.Month));
+const Months={
+  "01":"Jan",
+  "02":"Feb",
+  "03":"Mar",
+  "04":"Apr",
+  "05":"May",
+  "06":"Jun",
+  "07":"Jul",
+  "08":"Aug",
+  "09":"Sep",
+  "10":"Oct",
+  "11":"Nov",
+  "12":"Dec"
+
+}
+const monthArray=["01","02","03","04","05","06","07","08","09","10","11","12"];
+const labels1=[];
+const netSales1=[];
+const wasteCost1=[];
+const salvageCost1=[];
+const shrinkCost1=[];
+
+for (let i = 0; i < monthArray.length; i++) {
+  const monthCode = monthArray[i];
+  const monthLabel = Months[monthCode];
+
+  // Try to find matching data for this month
+  const match = janFebData.find(item => item.Month.split("-")[1] === monthCode);
+
+  labels1.push(monthLabel);
+
+  if (match) {
+    netSales1.push(match.Total_Net_Sales);
+    wasteCost1.push(match.Total_Waste_Cost);
+    salvageCost1.push(match.Total_Salvage_Cost);
+    shrinkCost1.push(match.Total_Shrink_Cost);
+  } else {
+    netSales1.push(0);
+    wasteCost1.push(0);
+    salvageCost1.push(0);
+    shrinkCost1.push(0);
+  }
+}
+
+const prepareData={
+  labels:labels1 || [],
+  datasets:{
+    netSales:netSales1 || [],
+    wasteCost:wasteCost1 || [],
+    salvageCost:salvageCost1 || [],
+    shrinkCost:shrinkCost1 || [],
+  }
+}
+
   const {
     category = "Produce (Fresh)",
     region = "North",
@@ -159,22 +219,12 @@ const BarChartDashboard = ({ filters = {} }) => {
     subCategory,
   } = filters;
 
-  // 1) pick base dataset by category + region
-  // Demo: if region specified, we pick region-specific; otherwise fallback to category->North
-  const base =
-    barChartDataByCategoryAndRegion[category]?.[region] ||
-    barChartDataByCategoryAndRegion[category]?.North ||
-    {
-      labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
-      datasets: { netSales: [], wasteCost: [], salvageCost: [], shrinkCost: [] }
-    };
-
   // 2) clone arrays (don't mutate original demo data)
-  const labels = [...base.labels];
-  const netSales = [...(base.datasets.netSales || [])];
-  const wasteCost = [...(base.datasets.wasteCost || [])];
-  const salvageCost = [...(base.datasets.salvageCost || [])];
-  const shrinkCost = [...(base.datasets.shrinkCost || [])];
+  const labels = [...prepareData.labels];
+  const netSales = [...(prepareData.datasets.netSales || [])];
+  const wasteCost = [...(prepareData.datasets.wasteCost || [])];
+  const salvageCost = [...(prepareData.datasets.salvageCost || [])];
+  const shrinkCost = [...(prepareData.datasets.shrinkCost || [])];
 
   // 3) Demo modifications using other filters (so you can show multi-filter effect)
   // - Example: if user selected E-commerce channel, slightly increase netSales in summer months
@@ -203,7 +253,7 @@ const BarChartDashboard = ({ filters = {} }) => {
     labels,
     datasets: [
       {
-        label: "Net Sales - Merchandise",
+        label: `Net Sales - ${filters?.category}`,
         data: netSales,
         backgroundColor: "#444744",
         type: "bar",
@@ -292,7 +342,7 @@ const BarChartDashboard = ({ filters = {} }) => {
         type: "linear",
         position: "left",
         min: 0,
-        max: 75,
+        max: 30000,
         title: {
           display: true,
           text: "Net Sales ($M)",
@@ -311,7 +361,7 @@ const BarChartDashboard = ({ filters = {} }) => {
         type: "linear",
         position: "right",
         min: 0,
-        max: 3,
+        max: 3000,
         title: {
           display: true,
           text: "Cost Metrics ($M)",

@@ -178,6 +178,7 @@
   font-size: 12px;
   color: #6D706B;
   text-decoration: underline;
+  outline: none;
 }
 
 .metricCatagoryPercentage {
@@ -191,10 +192,14 @@
   position: absolute;
   top: -25px;
   /* adjust as needed */
-  transform: translateX(-50%);
+  transform: translateX(-50%); 
 
 }
 
 .rangeSec {
-  padding-bottom: 10px;
+  padding: 0 2px 10px 2px;
+}
+
+.colorOrg {
+  color: #FFAD28 !important;
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React,{useEffect,useState} from "react";
 import "./salesProjection.css";
 import { Doughnut, Bar } from "react-chartjs-2";
 import {
@@ -10,6 +10,7 @@ import {
   LinearScale,
   BarElement,
 } from "chart.js";
+import DashboardService from "../../../../../../services/dashboardService";
 
 ChartJS.register(
   ArcElement,
@@ -551,6 +552,7 @@ const SalesProjection = ({ filters }) => {
     selectedStores,
     subCategory,
   } = filters;
+
   const options = {
     cutout: "60%",
     plugins: {
@@ -559,16 +561,44 @@ const SalesProjection = ({ filters }) => {
     },
   };
 
-  let kpiData = [];
+  // let kpiData = [];
 
-  if (category && region) {
-    kpiData = kpiDataByCategory[category]?.[region] || [];
-  } else if (category) {
-    // Default region if not selected
-    kpiData = kpiDataByCategory[category]?.North || [];
-  } else {
-    kpiData = [];
-  }
+  // if (category && region) {
+  //   kpiData = kpiDataByCategory[category]?.[region] || [];
+  // } else if (category) {
+  //   // Default region if not selected
+  //   kpiData = kpiDataByCategory[category]?.North || [];
+  // } else {
+  //   kpiData = [];
+  // }
+
+
+
+    const [kpiData, setKpiData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+  
+    useEffect(() => {
+      const loadKPIs = async () => {
+        try {
+          const response = await DashboardService.fetchDashboardKPIs(filters);
+          setKpiData(response.kpis);
+          console.log(response.kpis)
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      loadKPIs();
+    }, [filters]); 
+    // re-fetch when filters change
+  
+    if (loading) return <div>Loading KPIs...</div>;
+    if (error) return <div>Error: {error}</div>;
+
+
 
   return (
     <div className="flex flex-row flex-wrap gap-2 justify-between">
@@ -601,7 +631,7 @@ const SalesProjection = ({ filters }) => {
           >
             {/* Title */}
             <h3 className="overflow-hidden leading-tight text-[12px] font-semibold text-gray-800 m-0 kpiTitle">
-              {item.title}
+              {item?.title}
             </h3>
 
             {/* Value & Chart Row */}

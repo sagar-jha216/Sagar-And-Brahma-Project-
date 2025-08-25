@@ -114,7 +114,7 @@ function LandingPage(props) {
 							<div className="py-2 sm:py-7">
 								<div className="mx-auto">
 									<div className="mx-auto =lg:mx-0">
-										<h2 className="text-4xl font-semibold tracking-tight text-pretty text-gray-900 sm:text-5xl titleTextLandingPage">Proactively <span className='redTextColor'>detect shrinkage</span> and implement <span className='orangeTextColor'>recommended remediation</span> to <span className='redTextColor'>prevent losses</span></h2>
+										<h2 className="text-4xl font-semibold tracking-tight text-pretty text-gray-900 sm:text-5xl titleTextLandingPage">Proactively <span className='redTextColor'>Detect Shrinkage</span> And <span className='orangeTextColor'>Recommended Remediation</span> To <span className='redTextColor'>Prevent Losses</span></h2>
 										<p className="mt-2 text-lg/8 text-gray-600">Use data, AI, automation to predict shrink, prevent loss and improve profits</p>
 									</div>
 									<div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 pt-10 lg:mx-0 lg:max-w-none lg:grid-cols-4">

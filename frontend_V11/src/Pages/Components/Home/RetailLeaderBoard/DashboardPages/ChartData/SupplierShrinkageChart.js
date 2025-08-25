@@ -88,11 +88,11 @@ const chartDataByFilters = {
 };
 
 // 📌 Reusable chart template
-const ChartTemplate = ({ data, maxDomain }) => (
+const ChartTemplate = ({ data, maxDomain,realData }) => (
   <ResponsiveContainer width="95%" height={200}>
     <BarChart
       layout="vertical"
-      data={data}
+      data={realData}
       margin={{ top: 0, right: 0, left: -40, bottom: 0 }}
     >
       <XAxis
@@ -126,21 +126,28 @@ const ChartTemplate = ({ data, maxDomain }) => (
 );
 
 // 📌 Top Supplier Shrinkage Chart
-export const TopSupplierShrinkageChart = ({filters}) => {
-  
-  const regionKey = filters.region?.toLowerCase() || 'all';
+export const TopSupplierShrinkageChart = ({filters,data}) => {
+
+const regionKey = filters.region?.toLowerCase() || 'all';
 const currentData = chartDataByFilters[regionKey]?.topData || chartDataByFilters.all.topData;
 
+const TopSupplierShrinkage=data?.map((d)=>({
+name:d?.Supplier_Name,
+value:d?.Shrinkage_pct,
+}));
 
-  return <ChartTemplate data={currentData} maxDomain={25} />;
+  return <ChartTemplate data={currentData} maxDomain={25} realData={TopSupplierShrinkage}/>;
 };
 
 // 📌 Bottom Supplier Shrinkage Chart
-export const BottomSupplierShrinkageChart = ({filters}) => {
+export const BottomSupplierShrinkageChart = ({filters,data}) => {
   
   const regionKey = filters.region?.toLowerCase() || 'all';
 const currentData = chartDataByFilters[regionKey]?.bottomData || chartDataByFilters.all.bottomData;
+const SupplierShrinkageChart=data?.map((d)=>({
+  name:d?.SKU_ID,
+  value:d?.Shrinkage_pct,
+  }));
 
-
-  return <ChartTemplate data={currentData} maxDomain={25} />;
+  return <ChartTemplate data={currentData} maxDomain={25} realData={SupplierShrinkageChart}/>;
 };
