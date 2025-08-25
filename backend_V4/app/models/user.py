@@ -8,3 +8,6 @@ class User(Base):
     userName = Column(String, unique=True, index=True) 
     hashed_password = Column(String, nullable=False)
     isAdmin = Column(Boolean, default=False)  # Default value set to False
+
+
+

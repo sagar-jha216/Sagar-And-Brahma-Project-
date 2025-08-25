@@ -24,19 +24,22 @@ class InventoryBase(BaseModel):
     Shelf_Life_Remaining: int = Field(..., alias="Shelf_Life_Remaining")
     Shelf_Life_Used_Pct: float = Field(..., alias="Shelf_Life_Used_Pct")
     Inventory_Status: str = Field(..., alias="Inventory_Status")
-    Cost_Price_CP: float = Field(..., alias="Cost_Price(CP)")
-    Selling_Price_SP: float = Field(..., alias="Selling_Price(SP)")
-    Original_Revenue: float = Field(..., alias="Original_Revenue(no return/remediation)")
+    Cost_Price_CP: float = Field(..., alias="Cost_Price_CP")
+    Selling_Price_SP: float = Field(..., alias="Selling_Price_SP")
+    Original_Revenue: float = Field(..., alias="Original_Revenue")
     COGS: float = Field(..., alias="COGS")
     Original_Gross_Margin: float = Field(..., alias="Original_Gross_Margin")
     Inventory_Age_Days: int = Field(..., alias="Inventory_Age_Days")
     Is_Returnable: bool = Field(..., alias="Is_Returnable")
     Is_Perishable: bool = Field(..., alias="Is_Perishable")
     Region_Historical: str = Field(..., alias="Region_Historical")
-    Markdown_Pct: float = Field(..., alias="markdown %")
+    Markdown_Pct: float = Field(..., alias="Markdown_Pct")
     Days_of_Supply: int = Field(..., alias="Days of Supply")
     Required_Markdown_Pct: float = Field(..., alias="Required_Markdown_Pct")
     Predicted_Upliftment_Factor: float = Field(..., alias="Predicted_Upliftment_Factor")
+    Sub_Category: str = Field(..., alias="Sub_Category")
+    Store_Channel: str = Field(..., alias="Store_Channel")
+
 
     class Config:
         allow_population_by_field_name = True  # Allows using Pythonic names in code

@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_,case,desc
+from sqlalchemy import or_, and_
 from app.models.inventory import Inventory
 from typing import Optional, Tuple
+from sqlalchemy.orm.query import Query
 
 def apply_inventory_filters(
     db: Session,
@@ -10,23 +11,22 @@ def apply_inventory_filters(
     store_id: Optional[str],
     time_period: Optional[str],
     sub_category: Optional[str],
-    store_channel: Optional[str] = None  # Placeholder for future use
-) -> Tuple:
-    # Category mapping from frontend to database
+    store_channel: Optional[str] = None
+) -> Tuple[Query, Optional[str], Optional[str]]:
+    # Mappings
     category_mapping = {
-        "Produce (Fresh)": "Fresh Produce",
+        "Produce (Fresh)": "Produce (Fresh)",
         "Dry Goods": "Dry Goods",
         "General Merchandise": "General Merchandise"
     }
-    db_category = category_mapping.get(category, category) if category else None
-
-    # Region mapping
     region_mapping = {
         "East": "East",
         "West": "West",
         "North": "North",
         "South": "South"
     }
+
+    db_category = category_mapping.get(category, category) if category else None
     db_region = region_mapping.get(region, region) if region else None
 
     query = db.query(Inventory)
@@ -40,11 +40,13 @@ def apply_inventory_filters(
     if db_region:
         filters.append(Inventory.Region_Historical == db_region)
 
-    # 3. Store ID filter
+    # 3. Store ID filter (supports comma-separated values)
     if store_id:
-        filters.append(Inventory.Store_ID == store_id)
+        store_ids = [s.strip() for s in store_id.split(',') if s.strip()]
+        if store_ids:
+            filters.append(Inventory.Store_ID.in_(store_ids))
 
-    # 4. Time period filter
+    # 4. Time period filter (expects 'YYYY-MM-DD')
     if time_period:
         filters.append(Inventory.Received_Date == time_period)
 
@@ -63,9 +65,14 @@ def apply_inventory_filters(
         else:
             filters.append(Inventory.Product_Name.contains(sub_category))
 
-    # 6. Store channel filter (not implemented yet)
-    # You can add logic here when mapping is available
+    # 6. Store channel filter (supports comma-separated values)
+    if store_channel:
+        channels = [c.strip() for c in store_channel.split(',') if c.strip()]
+        if channels:
+            filters.append(Inventory.Store_Channel.in_(channels))
 
+    # Apply filters
+    print(filters)
     if filters:
         query = query.filter(and_(*filters))
 

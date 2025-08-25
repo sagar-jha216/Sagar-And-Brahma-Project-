@@ -15,8 +15,8 @@ class ReturnRemediationBase(BaseModel):
     recommended_action: str = Field(..., alias="recommended_action")
     target_name: str = Field(..., alias="target_name")
     return_date: date = Field(..., alias="return_date")
-    cost_price_cp: float = Field(..., alias="cost_price(cp)")
-    selling_price_sp: float = Field(..., alias="selling_price(sp)")
+    cost_price_cp: float = Field(..., alias="cost_price_cp")
+    selling_price_sp: float = Field(..., alias="selling_price_sp")
     gross_margin_pct: float = Field(..., alias="gross_margin_pct")
     expected_recovery: float = Field(..., alias="expected_recovery")
     tax_benefit_amount: float = Field(..., alias="tax_benefit_amount")
@@ -44,8 +44,8 @@ class ReturnRemediationUpdate(BaseModel):
     recommended_action: str | None = None
     target_name: str | None = None
     return_date: date | None = None
-    cost_price_cp: float | None = Field(None, alias="cost_price(cp)")
-    selling_price_sp: float | None = Field(None, alias="selling_price(sp)")
+    cost_price_cp: float | None = Field(None, alias="cost_price_cp")
+    selling_price_sp: float | None = Field(None, alias="selling_price_sp")
     gross_margin_pct: float | None = None
     expected_recovery: float | None = None
     tax_benefit_amount: float | None = None

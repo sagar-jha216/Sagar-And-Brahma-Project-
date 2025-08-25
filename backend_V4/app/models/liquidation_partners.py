@@ -10,10 +10,10 @@ class LiquidationPartner(Base):
     Liquidator_Type = Column(String, name="Liquidator_Type")
     Latitude = Column(Float, name="Latitude")
     Longitude = Column(Float, name="Longitude")
-    Offer_Price_Pct_of_MRP = Column(Float, name="Offer Price (% of MRP)")
-    Pickup_SLA_Days = Column(Integer, name="Pickup SLA (in days)")
+    Offer_Price_Pct_of_MRP = Column(Float, name="Offer_Price_Pct_of_MRP")
+    Pickup_SLA_Days = Column(Integer, name="Pickup_SLA_Days")
     Quantity_Handling_Capacity_Fresh_Produce = Column(Integer, name="Quantity_Handling_Capacity_Fresh_Produce")
     Quantity_Handling_Capacity_Dry_Goods = Column(Integer, name="Quantity_Handling_Capacity_Dry_Goods")
     Quantity_Handling_Capacity_GM = Column(Integer, name="Quantity_Handling_Capacity_GM")
-    Past_Fulfillment_Success_Rate_Pct = Column(Float, name="Past Fulfillment Success Rate (%)")
+    Past_Fulfillment_Success_Rate_Pct = Column(Float, name="Past_Fulfillment_Success_Rate_Pct")
 

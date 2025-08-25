@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.controllers.analytics import get_shrinkage_analytics
 import logging
-
+ 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
+ 
 @router.get("/retail-leader-board")
 def get_retail_leader_board_data(db: Session = Depends(get_db)):
     """

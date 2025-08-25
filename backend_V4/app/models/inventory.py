@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -13,8 +13,8 @@ class Inventory(Base):
     store = relationship("Store", back_populates="inventory_items")
 
     Supplier_Name = Column(String)
-    Received_Date = Column(Date)
-    Expiry_Date = Column(Date)
+    Received_Date = Column(DateTime)
+    Expiry_Date = Column(DateTime)
     System_Quantity_Received = Column(Integer)
     Actual_Quantity_Received = Column(Integer)
     Difference_System_Actual = Column(Integer)  
@@ -43,6 +43,9 @@ class Inventory(Base):
     Days_of_Supply = Column(Integer)
     Required_Markdown_Pct = Column(Float)
     Predicted_Upliftment_Factor = Column(Float)
+    Sub_Category = Column(String)
+    Store_Channel = Column(String)
+
 
     returns = relationship("Return", back_populates="inventory_item")
     remediations = relationship("ReturnRemediation", back_populates="inventory_item")

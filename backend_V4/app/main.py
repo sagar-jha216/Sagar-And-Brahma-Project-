@@ -17,7 +17,10 @@ from app.routes.stores import router as stores_router
 from app.routes.analytics import router as analytics_router
 from app.routes.dashboard_kpis import router as dashboard_kpis_router
 from app.routes.dashboard_graphs import router as dashboard_graphs_router
-
+from app.routes import Retail_Leader_Board_KPIs
+from app.routes.command_center import router as command_center_router
+from app.routes.remediation_recommendations_route import router as remediation_route_router
+# from app.scripts import load_user
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -43,8 +46,6 @@ app.add_middleware(
 app.include_router(product_router, prefix="/products", tags=["Products"])
 app.include_router(category_router, prefix="/category", tags=["Category"])
 app.include_router(user_router, prefix="/user", tags=["User"])
-
-
 app.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
 app.include_router(liquidation_partners.router, prefix="/liquidation_partners", tags=["Liquidation_Partners"])
 app.include_router(ngo_partners.router, prefix="/ngo-partners", tags=["NGO Partners"])
@@ -57,9 +58,9 @@ app.include_router(stores_router, prefix="/stores", tags=["Stores"])
 app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"]) 
 app.include_router(dashboard_kpis_router, prefix="/analytics", tags=["Dashboard KPIs"])
 app.include_router(dashboard_graphs_router, prefix="/analytics", tags=["Dashboard Graphs"])
-
-
-
+app.include_router(Retail_Leader_Board_KPIs.router, prefix="/retail-kpi", tags=["Retail KPI"])
+app.include_router(command_center_router, prefix="/analytics", tags=["Command Center"])
+app.include_router(remediation_route_router, prefix="/api", tags=["Remediation Recommendations API"])
 
 
 

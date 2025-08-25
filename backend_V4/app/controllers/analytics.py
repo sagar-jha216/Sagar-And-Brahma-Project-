@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from app.models.inventory import Inventory
 from typing import Dict, List
-
+ 
 def get_shrinkage_analytics(db: Session) -> Dict:
     """
     Calculate shrinkage percentages by category and overall metrics

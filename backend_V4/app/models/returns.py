@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -16,12 +16,12 @@ class Return(Base):
     product_name = Column("product_name", String)
     return_reason = Column("return_reason", String)
     quantity_returned = Column("quantity_returned", Integer)
-    Cost_Price_CP = Column("Cost_Price(CP)", Float)
-    Selling_Price_SP = Column("Selling_Price(SP)", Float)
+    Cost_Price_CP = Column("Cost_Price_CP", Float)
+    Selling_Price_SP = Column("Selling_Price_SP", Float)
     shelf_life = Column("shelf_life", Integer)
     days_left = Column("days_left", Integer)
-    return_date = Column("return_date", Date)
+    return_date = Column("return_date", DateTime)
     customer_id = Column("customer_id", String)
-    original_purchase_date = Column("original_purchase_date", Date)
-    created_at = Column("created_at", Date)
-    updated_at = Column("updated_at", Date)
+    original_purchase_date = Column("original_purchase_date", DateTime)
+    created_at = Column("created_at", DateTime)
+    updated_at = Column("updated_at", DateTime)

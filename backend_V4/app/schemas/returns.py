@@ -10,8 +10,8 @@ class ReturnBase(BaseModel):
     product_name: str = Field(..., alias="product_name")
     return_reason: str = Field(..., alias="return_reason")
     quantity_returned: int = Field(..., alias="quantity_returned")
-    Cost_Price_CP: float = Field(..., alias="Cost_Price(CP)")
-    Selling_Price_SP: float = Field(..., alias="Selling_Price(SP)")
+    Cost_Price_CP: float = Field(..., alias="Cost_Price_CP")
+    Selling_Price_SP: float = Field(..., alias="Selling_Price_SP")
     shelf_life: int = Field(..., alias="shelf_life")
     days_left: int = Field(..., alias="days_left")
     return_date: date = Field(..., alias="return_date")
@@ -37,8 +37,8 @@ class ReturnUpdate(BaseModel):
     product_name: str | None = None
     return_reason: str | None = None
     quantity_returned: int | None = None
-    Cost_Price_CP: float | None = Field(None, alias="Cost_Price(CP)")
-    Selling_Price_SP: float | None = Field(None, alias="Selling_Price(SP)")
+    Cost_Price_CP: float | None = Field(None, alias="Cost_Price_CP")
+    Selling_Price_SP: float | None = Field(None, alias="Selling_Price_SP")
     shelf_life: int | None = None
     days_left: int | None = None
     return_date: date | None = None
