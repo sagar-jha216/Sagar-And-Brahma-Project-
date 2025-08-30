@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, desc
 from app.models.inventory import Inventory
+from app.models.remediation_recommendations import RemediationRecommendation
 from app.models.returns import Return
 from app.models.stores import Store
 # from app.utils.dashboard_filters import apply_inventory_filters
@@ -37,10 +38,12 @@ def get_dashboard(filters, db: Session):
     # Query all data from inventory and returns
     inve_records = db.query(Inventory).all()
     returns_records = db.query(Return).all()
+    returns_recommendation = db.query(RemediationRecommendation).all()
 
     # Convert to DataFrames
     df_inve = pd.DataFrame([r.__dict__ for r in inve_records])
     df_returns = pd.DataFrame([r.__dict__ for r in returns_records])
+    df_recommendation = pd.DataFrame([r.__dict__ for r in returns_recommendation])
 
     # Drop SQLAlchemy internal state column if present
 
@@ -95,18 +98,13 @@ def get_dashboard(filters, db: Session):
         return (total_shrinkage_units / actual_qty * 100) if actual_qty else 0
 
 
-
-
-
-
-
     def sum_column(df, col):
         return df[col].fillna(0).sum()
     
     def waste_pct_of_net_sales(df):
-        waste_value = ((df["Number_Dump_Units"].fillna(0) + df["Number_Damaged_Units"].fillna(0) + df["Number_Expired_Units"].fillna(0)) * df["Selling_Price_SP"].fillna(0)).sum()
-        net_sales = (df["Actual_Quantity_Received"].fillna(0) * df["Selling_Price_SP"].fillna(0)).sum()
-        return waste_value / net_sales if net_sales else 0
+        waste_value = ((df["Number_Dump_Units"].fillna(0) + df["Number_Damaged_Units"].fillna(0) + df["Number_Expired_Units"].fillna(0)) * df["Cost_Price_CP"].fillna(0)).sum()
+        net_sales = (df["Actual_Quantity_Received"].fillna(0) * df["Cost_Price_CP"].fillna(0)).sum()
+        return (waste_value / net_sales)*100 if net_sales else 0
 
     def non_sellable_inv(df):
 
@@ -114,68 +112,92 @@ def get_dashboard(filters, db: Session):
         dump_units = sum_column(df, "Number_Dump_Units")
         damaged_units = sum_column(df, "Number_Damaged_Units")
         expired_units = sum_column(df, "Number_Expired_Units")
-
+        
         Total_non_sellable_units = dump_units + damaged_units + expired_units
 
         dump_pct = (dump_units / Total_non_sellable_units) * 100 if Total_non_sellable_units else 0
         damage_pct = (damaged_units / Total_non_sellable_units) * 100 if Total_non_sellable_units else 0
         expired_pct = (expired_units / Total_non_sellable_units) * 100 if Total_non_sellable_units else 0
+         
+        # Calculate total non-sellable inventory value
+        if "Cost_Price_CP" in df.columns:
+            total_value = Total_non_sellable_units * df["Cost_Price_CP"].mean()
+        else:
+            total_value = 0 
 
-        return dump_pct + damage_pct + expired_pct
 
+        # return dump_pct, damage_pct, expired_pct
+        summary = pd.DataFrame([{
+            "Total_Non_Sellable_Units": int(Total_non_sellable_units),
+            "Dump_Pct": round(dump_pct, 2),
+            "Damage_Pct": round(damage_pct, 2),
+            "Expired_Pct": round(expired_pct, 2),
+            "Total_Non_Sellable_Inventory_Value": round(total_value, 2)
+        }])
+        return summary
 
-    def wastage_by_month_cat(df: pd.DataFrame) -> pd.DataFrame:
-        # Ensure date column is in datetime format
+    # wastage_by_month_cat updated logic 
+    def sales_vs_shrink_vs_waste_vs_salv(
+        df_inve: pd.DataFrame,
+        df_recommendation: pd.DataFrame | None = None
+    ) -> pd.DataFrame:
+        # --- Dates & month ---
+        df = df_inve.copy()
         df["Received_Date"] = pd.to_datetime(df["Received_Date"], errors="coerce")
-
-        # Drop rows with invalid dates
         df = df.dropna(subset=["Received_Date"])
-
-        # Extract month as string (e.g., '2025-08')
         df["Month"] = df["Received_Date"].dt.to_period("M").astype(str)
 
-        # Fill missing values to avoid calculation errors
+        # --- Safe fill ---
+        for col in [
+            "Number_Dump_Units","Number_Damaged_Units","Number_Expired_Units",
+            "Selling_Price_SP","Unit_Sold","Difference_System_Actual"
+        ]:
+            if col not in df.columns:
+                df[col] = 0
         df.fillna(0, inplace=True)
 
-        # Calculate total waste units
+        # --- Core metrics per row ---
         df["Total_Waste_Units"] = (
-            df["Number_Dump_Units"] +
-            df["Number_Damaged_Units"] +
-            df["Number_Expired_Units"]
+            df["Number_Dump_Units"] + df["Number_Damaged_Units"] + df["Number_Expired_Units"]
+        )
+        df["Waste"]     = df["Total_Waste_Units"]      * df["Selling_Price_SP"]
+        df["Sales"]     = df["Unit_Sold"]              * df["Selling_Price_SP"]
+        df["Shrinkage"] = df["Difference_System_Actual"] * df["Selling_Price_SP"]
+
+        # --- Merge recommendations (optional) ---
+        if df_recommendation is not None and not df_recommendation.empty:
+            rec = df_recommendation.loc[:, ["sku_id","store_id","recommended_action","net_loss_mitigation"]].copy()
+
+            # dedupe to avoid row multiplication in merge
+            rec = rec.sort_values(["sku_id","store_id","recommended_action","net_loss_mitigation"]).drop_duplicates(
+                ["sku_id","store_id"], keep="last"
+            )
+
+            df = df.merge(
+                rec,
+                left_on=["SKU_ID","Store_ID"],
+                right_on=["sku_id","store_id"],
+                how="left"
+            )
+
+            # compute Salvage only when LIQUIDATE
+            df["net_loss_mitigation"] = df["net_loss_mitigation"].fillna(0)
+            df["Salvage"] = 0
+            if "recommended_action" in df.columns:
+                df.loc[df["recommended_action"] == "LIQUIDATE", "Salvage"] = df["net_loss_mitigation"]
+        else:
+            # no recommendations provided -> Salvage = 0
+            df["Salvage"] = 0
+
+        # --- Monthly x Category aggregation ---
+        monthly_metrics = df.groupby(["Month","Category"], as_index=False).agg(
+            Total_Sales=("Sales","sum"),
+            Total_Shrinkage=("Shrinkage","sum"),
+            Total_Waste=("Waste","sum"),
+            Total_Salvage=("Salvage","sum"),
         )
 
-        # Calculate waste cost using Selling_Price_SP
-        df["Waste_Cost"] = df["Total_Waste_Units"] * df["Selling_Price_SP"]
-
-        # Calculate Net Sales
-        df["Net_Sales"] = df["Unit_Sold"] * df["Selling_Price_SP"]
-
-        # Calculate Net Salvage Cost (assuming markdown applies to damaged units)
-        df["Net_Salvage_Cost"] = df["Number_Damaged_Units"] * df["Selling_Price_SP"] * (1 - df["Markdown_Pct"])
-
-        # Calculate Shrink Cost (based on missing inventory)
-        df["Shrink_Cost"] = df["Difference_System_Actual"] * df["Cost_Price_CP"]
-
-        # Group by Month and Category
-        monthly_metrics = df.groupby(["Month", "Category"]).agg({
-            "Net_Sales": "sum",
-            "Waste_Cost": "sum",
-            "Net_Salvage_Cost": "sum",
-            "Shrink_Cost": "sum"
-        }).reset_index()
-
-        # Rename columns for clarity
-        monthly_metrics.columns = [
-            "Month", "Category",
-            "Total_Net_Sales",
-            "Total_Waste_Cost",
-            "Total_Salvage_Cost",
-            "Total_Shrink_Cost"
-        ]
-
         return monthly_metrics
-
-
 
     def shrink_inv_ratio(df_filtered, df_total):
         shrink_val_cat = sum_column(df_filtered, "Number_Dump_Units") + sum_column(df_filtered, "Number_Damaged_Units") + sum_column(df_filtered, "Number_Expired_Units")
@@ -241,48 +263,70 @@ def get_dashboard(filters, db: Session):
         return top_10_skus
     
     def Sales_Shrinkage_Salvage(df, returnsDf, df_inve):
+        # General KPIs
+        inventory_acc = inventory_accuracy(df)
+        damage_percentage = damaged_pct(df)
+        dump_percentage = dump_pct(df)
+        expired_percentage = expired_pct(df)
+        aged_percentage = aged_pct(df)
+        shrink_percentage = shrinkage_pct(df)
+        return_percentage = return_pct(df, returnsDf)
+        waste_percentage = waste_pct_of_net_sales(df)
+        shrink_inv = shrink_inv_ratio(df, df_inve)
 
-            inventory_acc = inventory_accuracy(df)
-            damage_percentage = damaged_pct(df)
-            dump_percentage = dump_pct(df)
-            expired_percentage = expired_pct(df)
-            aged_percentage = aged_pct(df)
-            shrink_percentage = shrinkage_pct(df)
-            return_percentage = return_pct(df, returnsDf)
-            
-            waste_percentage = waste_pct_of_net_sales(df)
-            non_sellable = non_sellable_inv(df)
-            shrink_inv = shrink_inv_ratio(df, df_inve)
+        # Top shrinkage insights
+        swhs = top_10_skus_by_shrinkage(df).to_dict(orient='records')
+        su_hs = suppliers_highest_shrinkage(df).to_dict(orient='records')
 
-            swhs = top_10_skus_by_shrinkage(df).to_dict(orient='records')
-            su_hs = suppliers_highest_shrinkage(df).to_dict(orient='records')
-            monthly_wastage = wastage_by_month_cat(df).to_dict(orient='records')
+        # Monthly waste breakdown
+        monthly_wastage_df = sales_vs_shrink_vs_waste_vs_salv(df)
+        monthly_wastage = monthly_wastage_df.to_dict(orient='records')
 
-            return {
-                "Inventory_Accuracy": inventory_acc,
-                "Damage_%": damage_percentage,
-                "Dump_%": dump_percentage,
-                "Expired_%": expired_percentage,
-                "Aged_%": aged_percentage,
-                "Return_%": return_percentage,
-                "Shrinkage_%": shrink_percentage,
-                "Waste_%_of_Net_Sales": round(waste_percentage, 2),
-                "Non_Sellable_Units_%": round(non_sellable, 2),
-                "Shrink_to_Inventory_Ratio": round(shrink_inv, 2),
-                "Top_SKUs_By_Shrinkage": swhs,
-                "Top_Suppliers_By_Shrinkage": su_hs,
-                "Monthly_Waste_Cost_By_Category": monthly_wastage
-            }
+        # Monthly Sales, Shrinkage %, Salvage % breakdown
+        monthly_sales_shrink_salvage = []
+        for _, row in monthly_wastage_df.iterrows():
+            net_sales = row["Total_Sales"]
+            shrink_cost = row["Total_Shrinkage"]
+            salvage_cost = row["Total_Salvage"]
 
+            shrink_pct = (shrink_cost / net_sales * 100) if net_sales else 0
+            salvage_pct = (salvage_cost / net_sales * 100) if net_sales else 0
 
+            monthly_sales_shrink_salvage.append({
+                "Month": row["Month"],
+                "Category": row["Category"],
+                "Sales": round(net_sales, 2),
+                "Shrinkage_%": round(shrink_pct, 2),
+                "Salvage_%": round(salvage_pct, 2)
+            })
+
+        # Final return
+        return {
+            "Inventory_Accuracy": inventory_acc,
+            "Damage_%": damage_percentage,
+            "Dump_%": dump_percentage,
+            "Expired_%": expired_percentage,
+            "Aged_%": aged_percentage,
+            "Return_%": return_percentage,
+            "Shrinkage_%": shrink_percentage,
+            "Waste_%_of_Net_Sales": round(waste_percentage, 2),
+            "Shrink_to_Inventory_Ratio": round(shrink_inv, 2),
+            "Top_SKUs_By_Shrinkage": swhs,
+            "Top_Suppliers_By_Shrinkage": su_hs,
+            "Monthly_Waste_Cost_By_Category": monthly_wastage,
+            "Monthly_Sales_Shrinkage_Salvage": monthly_sales_shrink_salvage
+        }
 
     return {
         "Waste_%_of_Net_Sales": float(round(waste_pct_of_net_sales(filtered_inve), 2)),
-        "Non_Sellable_Units": int(round(non_sellable_inv(filtered_inve), 2)),
+        "Non_Sellable_Units": non_sellable_inv(filtered_inve).to_dict(orient="records"),
         "Shrink_to_Inventory_Ratio": float(round(shrink_inv_ratio(filtered_inve, df_inve), 2)),
-        "wastage_by_month_cat": wastage_by_month_cat(filtered_inve).to_dict(orient="records"),
+        # "sales_vs_shrink_vs_waste_vs_salv": sales_vs_shrink_vs_waste_vs_salv(filtered_inve, df_inve, df_returns, df_recommendation).to_dict(orient="records"),
+        # "sales_vs_shrink_vs_waste_vs_salv": sales_vs_shrink_vs_waste_vs_salv(filtered_inve).to_dict(orient="records"),
+        "sales_vs_shrink_vs_waste_vs_salv": sales_vs_shrink_vs_waste_vs_salv(filtered_inve, df_recommendation).to_dict(orient="records"),
         "Top_Suppliers_By_Shrinkage": suppliers_highest_shrinkage(filtered_inve).to_dict(orient="records"),
         "Top_SKUs_By_Shrinkage": top_10_skus_by_shrinkage(filtered_inve).to_dict(orient="records"),
-        "Sales_Shrinkage_Salvage": Sales_Shrinkage_Salvage(filtered_inve,df_returns,df_inve),
+        "Monthly_Sales_Shrinkage_Salvage": Sales_Shrinkage_Salvage(filtered_inve, df_returns, df_inve)["Monthly_Sales_Shrinkage_Salvage"]
+        
     }
 
