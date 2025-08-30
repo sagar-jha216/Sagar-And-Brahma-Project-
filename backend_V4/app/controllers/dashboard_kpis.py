@@ -83,6 +83,30 @@ def get_dashboard_kpis(filters, db: Session):
         print(shrinkage_pct)
         return (total_shrinkage_units / actual_qty * 100) if actual_qty else 0
 
+    def inventory_age_buckets(df):
+        # Define bucket labels
+        buckets = {
+            "0-30 days": 0,
+            "31-60 days": 0,
+            "61-90 days": 0,
+            "91-180 days": 0,
+            "181-365 days": 0
+        }
+
+        # Iterate through the DataFrame
+        for age in df["Inventory_Age_Days"]:
+            if 0 <= age <= 30:
+                buckets["0-30 days"] += 1
+            elif 31 <= age <= 60:
+                buckets["31-60 days"] += 1
+            elif 61 <= age <= 90:
+                buckets["61-90 days"] += 1
+            elif 91 <= age <= 180:
+                buckets["91-180 days"] += 1
+            elif 181 <= age <= 365:
+                buckets["181-365 days"] += 1
+
+        return buckets
 
 
 
@@ -92,11 +116,12 @@ def get_dashboard_kpis(filters, db: Session):
         "Category": filters.Category or "All",
         "Subcategory": filters.Sub_Category or "All",
         "Region": filters.Region_Historical or "All",
-        "Inventory_Accuracy": round(inventory_accuracy(filtered_df), 2),
+        "Inventory_Age_Buckets": inventory_age_buckets(filtered_df),
         "Damage_%": round(damaged_pct(filtered_df), 2),
         "Dump_%": round(dump_pct(filtered_df), 2),
         "Expired_%": round(expired_pct(filtered_df), 2),
         "Aged_%": round(aged_pct(filtered_df), 2),
+        "Inventory_Age_Buckets": inventory_age_buckets(filtered_df) ,
         "Return_%": round(return_pct(filtered_df, df_returns), 2),
         "Shrinkage_%": round(shrinkage_pct(filtered_df), 2)
     }
