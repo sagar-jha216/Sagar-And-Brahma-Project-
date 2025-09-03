@@ -1,47 +1,57 @@
-def sales_vs_shrink_vs_waste_vs_salv(
-    df: pd.DataFrame,
-    df_recommendation: pd.DataFrame | None = None,
-    filters=None
-) -> pd.DataFrame:
-    # Apply inventory filters
-    if filters:
-        df = apply_filters_Inv(df, filters)
+def sales_vs_shrink_vs_waste_vs_salv(data: pd.DataFrame,
+                                     category: str,
+                                     df_recommendation: pd.DataFrame | None = None) -> pd.DataFrame:
+    """
+    Returns a DataFrame with columns:
+    ["Month", "Sales", "Shrinkage Cost", "Wastege Cost", "Salvage Cost"]
+    """
 
-    filtered = df.copy()
-    filtered = _ensure_standard_columns(filtered)
+    df = data.copy()
 
-    # 🔑 Merge return_recommendation (df_recommendation) to bring in salvage info
-    if df_recommendation is not None:
-        right_cols = [
-            c for c in ["sku_id", "store_id", "recommended_action", "net_loss_mitigation"]
-            if c in df_recommendation.columns
-        ]
-        if right_cols:
-            try:
-                filtered = filtered.merge(
-                    df_recommendation[right_cols],
-                    left_on=["SKU_ID", "Store_ID"],
-                    right_on=["sku_id", "store_id"],
-                    how="left"
-                )
-            except Exception:
-                pass  # don’t break if merge fails
+    # If recommendations aren’t present, try to merge them in (optional, safe no-op if already present)
+    if df_recommendation is not None and not {"recommended_action", "net_loss_mitigation"}.issubset(df.columns):
+        right = df_recommendation.copy()
 
-    # Dates and month
+        # normalize dates for merge
+        if "Received_Date" in df.columns:
+            df["Received_Date"] = pd.to_datetime(df["Received_Date"], errors="coerce")
+        if "received_date" in right.columns:
+            right["received_date"] = pd.to_datetime(right["received_date"], errors="coerce")
+
+        left_keys_all  = ["SKU_ID", "Store_ID", "Category", "Received_Date", "Inventory_On_Hand"]
+        right_map      = {"SKU_ID": "sku_id", "Store_ID": "store_id", "Category": "category",
+                          "Received_Date": "received_date", "Inventory_On_Hand": "quantity_on_hand"}
+        left_keys  = [k for k in left_keys_all if k in df.columns and right_map[k] in right.columns]
+        right_keys = [right_map[k] for k in left_keys]
+
+        if left_keys and len(left_keys) == len(right_keys):
+            df = df.merge(
+                right[right_keys + ["recommended_action", "net_loss_mitigation"]],
+                left_on=left_keys,
+                right_on=right_keys,
+                how="left"
+            )
+
+    # Filter category as this function is per-category
+    filtered = df[df["Category"] == category].copy()
+
+    # Dates and month bucket
     filtered["Received_Date"] = pd.to_datetime(filtered["Received_Date"], errors="coerce")
     filtered["Month"] = filtered["Received_Date"].dt.to_period("M").astype(str)
 
-    # Safe fill for missing columns
+    # Ensure numeric columns exist, then fill NaNs
     for col in [
         "Number_Dump_Units", "Number_Damaged_Units", "Number_Expired_Units",
         "Cost_Price_CP", "Selling_Price_SP", "Unit_Sold",
-        "Difference_System_Actual", "recommended_action", "net_loss_mitigation"
+        "Difference_(System - Actual)", "Difference_System_Actual",
+        "net_loss_mitigation"
     ]:
         if col not in filtered.columns:
             filtered[col] = 0
+
     filtered.fillna(0, inplace=True)
 
-    # Core metrics
+    # Compute cost metrics
     filtered["Total_Waste_Units"] = (
         filtered["Number_Dump_Units"] +
         filtered["Number_Damaged_Units"] +
@@ -50,25 +60,42 @@ def sales_vs_shrink_vs_waste_vs_salv(
     filtered["Waste"] = filtered["Total_Waste_Units"] * filtered["Cost_Price_CP"]
     filtered["Sales"] = filtered["Unit_Sold"] * filtered["Selling_Price_SP"]
 
+    # Use whichever shrink column is present
     if "Difference_System_Actual" in filtered.columns:
         filtered["Shrinkage"] = filtered["Difference_System_Actual"] * filtered["Cost_Price_CP"]
     else:
-        filtered["Shrinkage"] = 0
+        filtered["Shrinkage"] = filtered["Difference_(System - Actual)"] * filtered["Cost_Price_CP"]
 
-    # ✅ Salvage from return_remediation (only when recommended_action = LIQUIDATE)
-    filtered["Salvage"] = filtered.apply(
-        lambda row: row["net_loss_mitigation"] if row["recommended_action"] == "LIQUIDATE" else 0,
-        axis=1
+    # --- FIX: robust row-aligned Salvage assignment ---
+    # Normalize the action text to compare reliably
+    if "recommended_action" in filtered.columns:
+        rec_norm = (
+            filtered["recommended_action"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+        filtered["Salvage"] = 0.0
+        filtered.loc[rec_norm.eq("LIQUIDATE"), "Salvage"] = (
+            filtered.loc[rec_norm.eq("LIQUIDATE"), "net_loss_mitigation"].fillna(0.0)
+        )
+    else:
+        # if recommendations truly not present, no salvage contribution
+        filtered["Salvage"] = 0.0
+
+    # Monthly aggregation (last 12 months handling is done in frontend, so NO .tail(12) here)
+    monthly = (
+        filtered.groupby("Month", as_index=False)
+        .agg({
+            "Sales": "sum",
+            "Shrinkage": "sum",
+            "Waste": "sum",
+            "Salvage": "sum"
+        })
+        .reset_index(drop=True)
     )
 
-    # Monthly aggregation
-    monthly_metrics = filtered.groupby("Month", as_index=False).agg({
-        "Sales": "sum",
-        "Shrinkage": "sum",
-        "Waste": "sum",
-        "Salvage": "sum"
-    }).reset_index(drop=True)
+    # Rename to the exact columns your frontend expects
+    monthly.columns = ["Month", "Sales", "Shrinkage Cost", "Wastege Cost", "Salvage Cost"]
 
-    monthly_metrics.columns = ["Month", "Sales", "Shrinkage Cost", "Wastege Cost", "Salvage Cost"]
-
-    return monthly_metrics
+    return monthly
