@@ -1,0 +1,78 @@
+def sales_vs_shrink_vs_waste_vs_salv(
+    df: pd.DataFrame,
+    df_recommendation: pd.DataFrame | None = None,
+    filters=None
+) -> pd.DataFrame:
+    # Apply inventory-level filters if provided
+    if filters:
+        df = apply_filters_Inv(df, filters)
+    filtered = df.copy()
+    filtered = _ensure_standard_columns(filtered)
+
+    # Merge recommendation data if provided (for Salvage)
+    if df_recommendation is not None and "recommended_action" not in filtered.columns:
+        right_cols = [
+            c for c in ["sku_id", "store_id", "recommended_action", "net_loss_mitigation"]
+            if c in df_recommendation.columns
+        ]
+        if right_cols:
+            try:
+                filtered = filtered.merge(
+                    df_recommendation[right_cols],
+                    left_on=["SKU_ID", "Store_ID"],
+                    right_on=["sku_id", "store_id"],
+                    how="left"
+                )
+            except Exception:
+                # ignore merge errors
+                pass
+
+    # Dates and month
+    filtered["Received_Date"] = pd.to_datetime(filtered["Received_Date"], errors="coerce")
+    filtered["Month"] = filtered["Received_Date"].dt.to_period("M").astype(str)
+
+    # Ensure required columns exist
+    for col in [
+        "Number_Dump_Units", "Number_Damaged_Units", "Number_Expired_Units",
+        "Cost_Price_CP", "Selling_Price_SP", "Unit_Sold",
+        "Difference_System_Actual", "recommended_action", "net_loss_mitigation"
+    ]:
+        if col not in filtered.columns:
+            filtered[col] = 0
+    filtered.fillna(0, inplace=True)
+
+    # Core metrics
+    filtered["Total_Waste_Units"] = (
+        filtered["Number_Dump_Units"] +
+        filtered["Number_Damaged_Units"] +
+        filtered["Number_Expired_Units"]
+    )
+    filtered["Waste"] = filtered["Total_Waste_Units"] * filtered["Cost_Price_CP"]
+    filtered["Sales"] = filtered["Unit_Sold"] * filtered["Selling_Price_SP"]
+
+    # Shrinkage (cost-based)
+    if "Difference_System_Actual" in filtered.columns:
+        filtered["Shrinkage"] = filtered["Difference_System_Actual"] * filtered["Cost_Price_CP"]
+    else:
+        filtered["Shrinkage"] = 0
+
+    # ✅ Salvage (fix: only for LIQUIDATE rows)
+    filtered["Salvage"] = 0
+    if "recommended_action" in filtered.columns and "net_loss_mitigation" in filtered.columns:
+        filtered["Salvage"] = filtered["net_loss_mitigation"].where(
+            filtered["recommended_action"].eq("LIQUIDATE"),
+            0
+        )
+
+    # Monthly aggregation
+    monthly_metrics = filtered.groupby("Month", as_index=False).agg({
+        "Sales": "sum",
+        "Shrinkage": "sum",
+        "Waste": "sum",
+        "Salvage": "sum"
+    }).reset_index(drop=True)
+
+    monthly_metrics.columns = ["Month", "Sales", "Shrinkage Cost", "Wastege Cost", "Salvage Cost"]
+
+    # ⚡ Important: return DataFrame (not dict)
+    return monthly_metrics.tail(12)
