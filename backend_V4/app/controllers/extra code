@@ -3,14 +3,15 @@ def sales_vs_shrink_vs_waste_vs_salv(
     df_recommendation: pd.DataFrame | None = None,
     filters=None
 ) -> pd.DataFrame:
-    # Apply inventory-level filters if provided
+    # Apply inventory filters
     if filters:
         df = apply_filters_Inv(df, filters)
+
     filtered = df.copy()
     filtered = _ensure_standard_columns(filtered)
 
-    # Merge recommendation data if provided (for Salvage)
-    if df_recommendation is not None and "recommended_action" not in filtered.columns:
+    # 🔑 Merge return_recommendation (df_recommendation) to bring in salvage info
+    if df_recommendation is not None:
         right_cols = [
             c for c in ["sku_id", "store_id", "recommended_action", "net_loss_mitigation"]
             if c in df_recommendation.columns
@@ -24,14 +25,13 @@ def sales_vs_shrink_vs_waste_vs_salv(
                     how="left"
                 )
             except Exception:
-                # ignore merge errors
-                pass
+                pass  # don’t break if merge fails
 
     # Dates and month
     filtered["Received_Date"] = pd.to_datetime(filtered["Received_Date"], errors="coerce")
     filtered["Month"] = filtered["Received_Date"].dt.to_period("M").astype(str)
 
-    # Ensure required columns exist
+    # Safe fill for missing columns
     for col in [
         "Number_Dump_Units", "Number_Damaged_Units", "Number_Expired_Units",
         "Cost_Price_CP", "Selling_Price_SP", "Unit_Sold",
@@ -50,19 +50,16 @@ def sales_vs_shrink_vs_waste_vs_salv(
     filtered["Waste"] = filtered["Total_Waste_Units"] * filtered["Cost_Price_CP"]
     filtered["Sales"] = filtered["Unit_Sold"] * filtered["Selling_Price_SP"]
 
-    # Shrinkage (cost-based)
     if "Difference_System_Actual" in filtered.columns:
         filtered["Shrinkage"] = filtered["Difference_System_Actual"] * filtered["Cost_Price_CP"]
     else:
         filtered["Shrinkage"] = 0
 
-    # ✅ Salvage (fix: only for LIQUIDATE rows)
-    filtered["Salvage"] = 0
-    if "recommended_action" in filtered.columns and "net_loss_mitigation" in filtered.columns:
-        filtered["Salvage"] = filtered["net_loss_mitigation"].where(
-            filtered["recommended_action"].eq("LIQUIDATE"),
-            0
-        )
+    # ✅ Salvage from return_remediation (only when recommended_action = LIQUIDATE)
+    filtered["Salvage"] = filtered.apply(
+        lambda row: row["net_loss_mitigation"] if row["recommended_action"] == "LIQUIDATE" else 0,
+        axis=1
+    )
 
     # Monthly aggregation
     monthly_metrics = filtered.groupby("Month", as_index=False).agg({
@@ -74,5 +71,4 @@ def sales_vs_shrink_vs_waste_vs_salv(
 
     monthly_metrics.columns = ["Month", "Sales", "Shrinkage Cost", "Wastege Cost", "Salvage Cost"]
 
-    # ⚡ Important: return DataFrame (not dict)
-    return monthly_metrics.tail(12)
+    return monthly_metrics
