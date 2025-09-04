@@ -1,0 +1,407 @@
+from sqlalchemy.orm import Session
+from sqlalchemy import func, case, desc
+from app.models.inventory import Inventory
+from app.models.remediation_recommendations import RemediationRecommendation
+from app.models.returns import Return
+from app.models.stores import Store
+# from app.utils.dashboard_filters import apply_inventory_filters
+from typing import Optional, Dict
+from datetime import date
+import pandas as pd
+ 
+ 
+def _ensure_standard_columns(df: pd.DataFrame) -> pd.DataFrame:
+    # Normalize difference column naming
+    if "Difference_System_Actual" not in df.columns and "Difference_(System - Actual)" in df.columns:
+        df["Difference_System_Actual"] = df["Difference_(System - Actual)"]
+    if "Difference_System_Actual" not in df.columns and "Difference_System_Actual" not in df.columns:
+        # leave it; some datasets might not have shrink column
+        df["Difference_System_Actual"] = df.get("Difference_System_Actual", 0)
+ 
+    # Normalize Received_Date naming (some variants)
+    if "Received_Date" not in df.columns:
+        if "received_date" in df.columns:
+            df["Received_Date"] = df["received_date"]
+        else:
+            df["Received_Date"] = df.get("Received_Date", pd.NaT)
+ 
+    # Ensure numeric columns exist
+    expected_numeric = [
+        "Number_Dump_Units", "Number_Damaged_Units", "Number_Expired_Units",
+        "Cost_Price_CP", "Selling_Price_SP", "Unit_Sold",
+        "System_Quantity_Received", "Actual_Quantity_Received",
+        "Inventory_On_Hand", "Inventory_Status"
+    ]
+    for col in expected_numeric:
+        if col not in df.columns:
+            df[col] = 0
+ 
+    # recommendation columns
+    if "recommended_action" not in df.columns:
+        df["recommended_action"] = df.get("recommended_action", None)
+    if "net_loss_mitigation" not in df.columns:
+        df["net_loss_mitigation"] = df.get("net_loss_mitigation", 0)
+ 
+    return df
+ 
+ 
+def apply_filters_Inv(df, filters):
+    df_filtered = df.copy()
+    # If filters is None or empty-like, return copy
+    if not filters:
+        return df_filtered
+    # Note: some DataFrames might have lowercase keys; use exact keys as original code expects
+    if getattr(filters, "Category", None):
+        df_filtered = df_filtered[df_filtered["Category"] == filters.Category]
+    if getattr(filters, "Sub_Category", None):
+        df_filtered = df_filtered[df_filtered["Sub_Category"].isin(filters.Sub_Category)]
+    if getattr(filters, "Region_Historical", None):
+        df_filtered = df_filtered[df_filtered["Region_Historical"] == filters.Region_Historical]
+    if getattr(filters, "Store_ID", None):
+        # ensure DataFrame column exists
+        if "Store_ID" in df_filtered.columns:
+            df_filtered = df_filtered[df_filtered["Store_ID"].isin(filters.Store_ID)]
+        elif "store_id" in df_filtered.columns:
+            df_filtered = df_filtered[df_filtered["store_id"].isin(filters.Store_ID)]
+    if getattr(filters, "Store_Channel", None):
+        df_filtered = df_filtered[df_filtered["Store_Channel"].isin(filters.Store_Channel)]
+    if getattr(filters, "Received_Date", None):
+        df_filtered = df_filtered[pd.to_datetime(df_filtered["Received_Date"]).dt.date <= filters.Received_Date]
+    return df_filtered
+ 
+def apply_filters_Return(df, filters):
+    df_filtered = df.copy()
+    if not filters:
+        return df_filtered
+    if getattr(filters, "Category", None):
+        # returns DataFrame uses lowercase 'category'
+        if "category" in df_filtered.columns:
+            df_filtered = df_filtered[df_filtered["category"] == filters.Category]
+    if getattr(filters, "Store_ID", None):
+        if "store_id" in df_filtered.columns:
+            df_filtered = df_filtered[df_filtered["store_id"].isin(filters.Store_ID)]
+    return df_filtered
+ 
+ 
+def get_dashboard(filters, db: Session):
+    # Query all data from inventory and returns
+    inve_records = db.query(Inventory).all()
+    returns_records = db.query(Return).all()
+    returns_recommendation = db.query(RemediationRecommendation).all()
+ 
+    # Convert to DataFrames
+    df_inve = pd.DataFrame([r.__dict__ for r in inve_records])
+    df_returns = pd.DataFrame([r.__dict__ for r in returns_records])
+    df_recommendation = pd.DataFrame([r.__dict__ for r in returns_recommendation])
+ 
+    # backup/all inventory for certain KPIs
+    df_inve_all = pd.DataFrame([r.__dict__ for r in db.query(Inventory).all()])
+ 
+    # Prepare remediation (trim ranks)
+    rem_df = pd.DataFrame([r.__dict__ for r in db.query(RemediationRecommendation).all()])
+    if not rem_df.empty and "recommendation_rank" in rem_df.columns:
+        rem_df = rem_df[rem_df['recommendation_rank'] != 1]
+    # select expected columns if present
+    rem_keep = ['sku_id', 'store_id', 'category', 'received_date', 'quantity_on_hand', 'recommended_action', 'net_loss_mitigation']
+    rem_present = [c for c in rem_keep if c in rem_df.columns]
+    rem_df = rem_df[rem_present].copy()
+ 
+    # normalize date cols
+    if "Received_Date" in df_inve_all.columns:
+        df_inve_all["Received_Date"] = pd.to_datetime(df_inve_all["Received_Date"], errors="coerce")
+    if "received_date" in rem_df.columns:
+        rem_df["received_date"] = pd.to_datetime(rem_df["received_date"], errors="coerce")
+ 
+    # Merge inventory with recommendations (used for liquidation metrics)
+    # Attempt merge if required columns exist; otherwise create empty df_inv_remed
+    merge_left_cols = ["SKU_ID", "Store_ID", "Category", "Received_Date", "Inventory_On_Hand"]
+    merge_right_cols = ["sku_id", "store_id", "category", "received_date", "quantity_on_hand"]
+    if all(c in df_inve.columns for c in ["SKU_ID"]) and all(c in rem_df.columns for c in ["sku_id"]):
+        try:
+            df_inv_remed = pd.merge(
+                df_inve,
+                rem_df,
+                left_on=merge_left_cols,
+                right_on=merge_right_cols,
+                how="inner",
+                indicator=True
+            )
+        except Exception:
+            # fallback: try a simpler merge on SKU + store
+            try:
+                df_inv_remed = pd.merge(df_inve, rem_df, left_on=["SKU_ID", "Store_ID"], right_on=["sku_id", "store_id"], how="inner", indicator=True)
+            except Exception:
+                df_inv_remed = pd.DataFrame()
+    else:
+        df_inv_remed = pd.DataFrame()
+ 
+    # Drop SQLAlchemy internal state column if present
+    if '_sa_instance_state' in df_inve.columns:
+        df_inve = df_inve.drop(columns=['_sa_instance_state'])
+ 
+    # Apply top-level filters (these are baseline filtered sets)
+    filtered_inve = apply_filters_Inv(df_inve, filters)
+    filtered_returns = apply_filters_Return(df_returns, filters)
+ 
+    # Helper KPIs inside get_dashboard
+ 
+    def sum_by_key(df, key):
+        return df[key].fillna(0).sum()
+ 
+    def inventory_accuracy(df):
+        df = _ensure_standard_columns(df)
+        system_qty = sum_by_key(df, "System_Quantity_Received")
+        return (sum_by_key(df, "Actual_Quantity_Received") / system_qty * 100) if system_qty else 0
+ 
+    def damaged_pct(df):
+        df = _ensure_standard_columns(df)
+        actual_qty = sum_by_key(df, "Actual_Quantity_Received")
+        return (sum_by_key(df, "Number_Damaged_Units") / actual_qty * 100) if actual_qty else 0
+ 
+    def dump_pct(df):
+        df = _ensure_standard_columns(df)
+        actual_qty = sum_by_key(df, "Actual_Quantity_Received")
+        return (sum_by_key(df, "Number_Dump_Units") / actual_qty * 100) if actual_qty else 0
+ 
+    def expired_pct(df):
+        df = _ensure_standard_columns(df)
+        actual_qty = sum_by_key(df, "Actual_Quantity_Received")
+        return (sum_by_key(df, "Number_Expired_Units") / actual_qty * 100) if actual_qty else 0
+ 
+    def aged_pct(df):
+        df = _ensure_standard_columns(df)
+        aged_df = df[df["Inventory_Status"].isin(["Expiry Approaching", "Critical - Expiring Soon"])]
+        actual_qty = sum_by_key(df, "Actual_Quantity_Received")
+        return (sum_by_key(aged_df, "Actual_Quantity_Received") / actual_qty * 100) if actual_qty else 0
+ 
+    def return_pct(df_inv, df_ret):
+        df_inv = _ensure_standard_columns(df_inv)
+        sold = sum_by_key(df_inv, "Unit_Sold")
+        if filters and getattr(filters, "Category", None):
+            df_ret = df_ret[df_ret["category"] == filters.Category]
+        returned = sum_by_key(df_ret, "quantity_returned")
+        return (returned / sold * 100) if sold else 0
+ 
+    def shrinkage_pct(df):
+        df = _ensure_standard_columns(df)
+        actual_qty = sum_by_key(df, "Actual_Quantity_Received")
+        dump_units = sum_by_key(df, "Number_Dump_Units")
+        damaged_units = sum_by_key(df, "Number_Damaged_Units")
+        expired_units = sum_by_key(df, "Number_Expired_Units")
+        total_shrinkage_units = dump_units + damaged_units + expired_units
+        return (total_shrinkage_units / actual_qty * 100) if actual_qty else 0
+ 
+    def sum_column(df, col):
+        return df[col].fillna(0).sum()
+ 
+    def waste_pct_of_net_sales(df):
+        df = _ensure_standard_columns(df)
+        total_waste_value = ((df["Number_Dump_Units"] + df["Number_Damaged_Units"] + df["Number_Expired_Units"]) * (df["Cost_Price_CP"])).sum()
+        cogs = (df['System_Quantity_Received'] * df["Cost_Price_CP"]).sum()
+        if total_waste_value == 0 or cogs == 0:
+            waste_perct_cogs = 0
+        else:
+            waste_perct_cogs = (total_waste_value / cogs) * 100
+        return {
+            "waste_perct_cogs": round(waste_perct_cogs, 2),
+            "Total cogs": round(cogs, 2),
+            "Total Waste": round(total_waste_value, 2)
+        }
+ 
+    def non_sellable_inv(df):
+        df = _ensure_standard_columns(df)
+        dump_units = sum_column(df, "Number_Dump_Units")
+        damaged_units = sum_column(df, "Number_Damaged_Units")
+        expired_units = sum_column(df, "Number_Expired_Units")
+        Total_non_sellable_units = dump_units + damaged_units + expired_units
+        dump_pct = (dump_units / Total_non_sellable_units) * 100 if Total_non_sellable_units else 0
+        damage_pct = (damaged_units / Total_non_sellable_units) * 100 if Total_non_sellable_units else 0
+        expired_pct = (expired_units / Total_non_sellable_units) * 100 if Total_non_sellable_units else 0
+        if "Cost_Price_CP" in df.columns:
+            df["Non_Sellable_Units"] = (
+                df["Number_Dump_Units"].fillna(0) +
+                df["Number_Damaged_Units"].fillna(0) +
+                df["Number_Expired_Units"].fillna(0)
+            )
+            df["Non_Sellable_Value"] = df["Non_Sellable_Units"] * df["Cost_Price_CP"]
+            total_value = df["Non_Sellable_Value"].sum()
+        else:
+            total_value = 0
+        summary = pd.DataFrame([{
+            "Total_Non_Sellable_Units": int(Total_non_sellable_units),
+            "Dump_Pct": round(dump_pct, 2),
+            "Damage_Pct": round(damage_pct, 2),
+            "Expired_Pct": round(expired_pct, 2),
+            "Total_Non_Sellable_Inventory_Value": round(total_value, 2)
+        }])
+        return summary
+ 
+ 
+    def sales_vs_shrink_vs_waste_vs_salv(df, filters=None):
+        # Apply filters if provided
+        if filters:
+            df = apply_filters_Inv(df, filters)
+ 
+        df = _ensure_standard_columns(df)
+        filtered = df.copy()
+ 
+        # --- Convert dates & extract month ---
+        filtered["Received_Date"] = pd.to_datetime(filtered["Received_Date"], errors="coerce")
+        #filtered["Month"] = filtered["Received_Date"].dt.to_period("M").astype(str)
+        filtered["Month"] = pd.to_datetime(filtered["Received_Date"]).dt.strftime("%y-%m")
+
+        # --- Safe fill for missing columns ---
+        for col in [
+            "Number_Dump_Units", "Number_Damaged_Units", "Number_Expired_Units",
+            "Cost_Price_CP", "Selling_Price_SP", "Unit_Sold",
+            "Difference_System_Actual", "recommended_action", "net_loss_mitigation"
+        ]:
+            if col not in filtered.columns:
+                filtered[col] = 0
+ 
+        for col in filtered.columns:
+            if pd.api.types.is_categorical_dtype(filtered[col]):
+                if 0 not in filtered[col].cat.categories:
+                    filtered[col] = filtered[col].cat.add_categories([0])
+            filtered[col] = filtered[col].fillna(0)
+ 
+        # --- Core metrics ---
+        filtered["Total_Waste_Units"] = (
+            filtered["Number_Dump_Units"] +
+            filtered["Number_Damaged_Units"] +
+            filtered["Number_Expired_Units"]
+        )
+ 
+        filtered["Waste"] = filtered["Total_Waste_Units"] * filtered["Cost_Price_CP"]
+        filtered["Sales"] = filtered["Unit_Sold"] * filtered["Selling_Price_SP"]
+        filtered["Shrinkage"] = filtered["Difference_System_Actual"] * filtered["Cost_Price_CP"]
+ 
+        # --- Salvage ---
+        filtered["Salvage"] = 0
+        filtered.loc[filtered["recommended_action"] == "LIQUIDATE", "Salvage"] = filtered["net_loss_mitigation"]
+ 
+        # --- Monthly aggregation ---
+        monthly_wastage = filtered.groupby("Month", as_index=False).agg({
+            "Sales": "sum",
+            "Shrinkage": "sum",
+            "Waste": "sum",
+            "Salvage": "sum"
+        }).reset_index(drop=True)
+ 
+        # --- Rename for clarity ---
+        monthly_wastage.columns = ["Month", "Total_Sales", "Total_Shrinkage", "Total_Waste", "Total_Salvage"]
+ 
+        # --- Last 12 months only ---
+        monthly_wastage = monthly_wastage.tail(12)
+ 
+        # --- Final format ---
+        return monthly_wastage.to_dict(orient="records")
+ 
+
+ 
+    #Helper Function
+    def shrink_inv_ratio(df_filtered, df_total):
+        df_filtered = _ensure_standard_columns(df_filtered)
+        df_total = _ensure_standard_columns(df_total)
+        shrink_val_cat = sum_column(df_filtered, "Number_Dump_Units") + sum_column(df_filtered, "Number_Damaged_Units") + sum_column(df_filtered, "Number_Expired_Units")
+        total_shrink_val = sum_column(df_total, "Number_Dump_Units") + sum_column(df_total, "Number_Damaged_Units") + sum_column(df_total, "Number_Expired_Units")
+        cat_units = sum_column(df_filtered, "Actual_Quantity_Received")
+        total_inv = sum_column(df_total, "Actual_Quantity_Received")
+        shrinkage_value_pct = (shrink_val_cat / total_shrink_val) * 100 if total_shrink_val else 0
+        inv_pct = (cat_units / total_inv) * 100 if total_inv else 0
+        return shrinkage_value_pct / inv_pct if inv_pct else 0
+ 
+    def suppliers_highest_shrinkage(data: pd.DataFrame):
+        data = _ensure_standard_columns(data)
+        filtered = data.copy()
+        filtered['shrink_value'] = filtered["Difference_System_Actual"] * filtered["Cost_Price_CP"]
+        filtered["total_inv_value"] = filtered["Unit_Sold"] * filtered["Selling_Price_SP"]
+        # Avoid division by zero groups
+        #agg_shrink = filtered.groupby("Supplier_Name")[["shrink_value", "total_inv_value"]].sum()
+        # compute shrink pct
+        with pd.option_context('mode.use_inf_as_na', True):
+            shrink_pct = (filtered.groupby("Supplier_Name")["shrink_value"].sum()/(filtered.groupby("Supplier_Name")["shrink_value"].sum() + filtered.groupby("Supplier_Name")["total_inv_value"].sum()))*100
+        top_10_suppliers_with_highest_shrinkage = shrink_pct.reset_index(name="Shrinkage_pct").sort_values(by='Shrinkage_pct', ascending=False).head(10)
+        return top_10_suppliers_with_highest_shrinkage
+ 
+    def top_10_skus_by_shrinkage(data: pd.DataFrame):
+        data = _ensure_standard_columns(data)
+        filtered = data.copy()
+        filtered['shrink_value'] = filtered["Difference_System_Actual"] * filtered["Cost_Price_CP"]
+        filtered["total_inv_value"] = filtered["Unit_Sold"] * filtered["Selling_Price_SP"]
+        agg = filtered.groupby("SKU_ID")[["shrink_value", "total_inv_value"]].sum()
+        with pd.option_context('mode.use_inf_as_na', True):
+            shrink_pct = (filtered.groupby("SKU_ID")["shrink_value"].sum()/(filtered.groupby("SKU_ID")["shrink_value"].sum()+ filtered.groupby("SKU_ID")["total_inv_value"].sum()))*100
+        shrink_pct_df = shrink_pct.reset_index(name="Shrinkage")
+ 
+        # Merge Product_Name and replace SKU_ID
+        shrink_pct_df = shrink_pct_df.merge(data[["SKU_ID", "Product_Name"]].drop_duplicates(), on="SKU_ID", how="left")
+        shrink_pct_df["SKU_ID"] = shrink_pct_df["Product_Name"]
+        shrink_pct_df = shrink_pct_df.drop(columns=["Product_Name"])
+ 
+        # Reorder columns: SKU_ID (Product_Name), then Shrinkage
+        shrink_pct_df = shrink_pct_df[["SKU_ID", "Shrinkage"]]
+ 
+        top_10_SKU_with_highest_shrinkage = shrink_pct_df.sort_values(by='Shrinkage', ascending=False).head(10)
+        return top_10_SKU_with_highest_shrinkage
+ 
+ 
+ 
+ 
+    def Sales_Shrinkage_Salvage(df, filters=None):
+        # Apply filters if provided
+        if filters:
+            df = apply_filters_Inv(df, filters)
+ 
+        df = _ensure_standard_columns(df)
+        filtered = df.copy()
+ 
+        # Dates and month
+        filtered["Received_Date"] = pd.to_datetime(filtered["Received_Date"], errors="coerce")
+        filtered["Month"] = filtered["Received_Date"].dt.strftime("%y-%m")
+ 
+        # Financial metrics
+        filtered['Sales'] = filtered["Unit_Sold"] * filtered["Selling_Price_SP"]
+        filtered['COGS'] = filtered["System_Quantity_Received"] * filtered["Cost_Price_CP"]
+ 
+        # Shrinkage percentage (qty based)
+        # avoid division by zero by replacing 0 with NaN then fill later
+        filtered["Shrinkage%"] = 0
+        mask_actual = filtered["Actual_Quantity_Received"].fillna(0) != 0
+        filtered.loc[mask_actual, "Shrinkage%"] = ((filtered.loc[mask_actual, "Difference_System_Actual"] / filtered.loc[mask_actual, "Actual_Quantity_Received"]) * 100)
+ 
+        # Loss Mitigation (row aligned)
+        filtered['Loss_Mititagion'] = filtered["net_loss_mitigation"].where(filtered["recommended_action"].eq("LIQUIDATE"), 0)
+ 
+        # Monthly aggregation
+        monthly_data = filtered.groupby("Month", as_index=False).agg({
+            "Sales": 'sum',
+            "COGS": 'sum',
+            "Loss_Mititagion": 'sum',
+            "Shrinkage%": 'mean'
+        }).reset_index(drop=True)
+ 
+        # Salvage% relative to COGS
+        monthly_data["Salvage%"] = 0
+        mask_cogs = monthly_data["COGS"].fillna(0) != 0
+        monthly_data.loc[mask_cogs, "Salvage%"] = ((monthly_data.loc[mask_cogs, "Loss_Mititagion"] / monthly_data.loc[mask_cogs, "COGS"]) * 100)
+ 
+        final_data = monthly_data[["Month", "Sales", "Shrinkage%", "Salvage%"]]
+        return {
+            "Monthly_Sales_Shrinkage_Salvage": final_data.to_dict(orient="records")
+        }
+ 
+   
+    return {
+        "Waste_%_of_Net_Sales": waste_pct_of_net_sales(filtered_inve),
+        "Non_Sellable_Units": non_sellable_inv(filtered_inve).to_dict(orient="records"),
+        "Shrink_to_Inventory_Ratio": float(round(shrink_inv_ratio(filtered_inve, df_inve), 2)),
+        # pass recommendations and filters into the cost-based function (it will merge if needed)
+        #"sales_vs_shrink_vs_waste_vs_salv": sales_vs_shrink_vs_waste_vs_salv(filtered_inve, df_recommendation, filters).to_dict(orient="records"),
+        "Top_Suppliers_By_Shrinkage": suppliers_highest_shrinkage(filtered_inve).to_dict(orient="records"),
+        "Top_SKUs_By_Shrinkage": top_10_skus_by_shrinkage(filtered_inve).to_dict(orient="records"),
+        "sales_vs_shrink_vs_waste_vs_salv": sales_vs_shrink_vs_waste_vs_salv(df_inv_remed, filters),
+        # For Monthly sales/shrinkage/salvage% use merged df_inv_remed and apply filters inside
+        "Monthly_Sales_Shrinkage_Salvage": Sales_Shrinkage_Salvage(df_inv_remed, filters)["Monthly_Sales_Shrinkage_Salvage"]
+    }
+ 
