@@ -1,0 +1,269 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "0439aea2-8dac-4932-94c7-12ffb35951e9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "from datetime import datetime\n",
+    "import os\n",
+    "\n",
+    "# Show all rows\n",
+    "pd.set_option(\"display.max_rows\", None)\n",
+    "\n",
+    "# Show all columns\n",
+    "pd.set_option(\"display.max_columns\", None)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "4d97cb45-87b3-40fa-8909-54e89c931ae6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "inv_remed_file = \"Output_Files/\" + \"Remediation_Recommendations_20250905_224245.xlsx\"\n",
+    "return_remed_file = \"Output_Files/\" + \"Return_Remediation_Recommendations_20250905_225320.xlsx\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "d030de1a-4740-4e58-b48f-d05c20949438",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "remediation_df = pd.read_excel(inv_remed_file)\n",
+    "return_remediation_df = pd.read_excel(return_remed_file)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "64b8b4e3-d53a-4803-8a92-6bd4bba9a10c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# For VERY_HIGH risk, mark only the rows with max net_loss_mitigation to keep\n",
+    "mask = (\n",
+    "    (remediation_df[\"risk_level\"] != \"VERY_HIGH\") |\n",
+    "    (\n",
+    "        remediation_df[\"net_loss_mitigation\"] ==\n",
+    "        remediation_df.groupby([\"store_id\", \"sku_id\", \"cogs\", \"issue_id\"])[\"net_loss_mitigation\"].transform(\"max\")\n",
+    "    )\n",
+    ")\n",
+    "\n",
+    "remediation_df = remediation_df[mask]\n",
+    "remediation_df = remediation_df[~remediation_df['risk_level'].isin(['LOW', 'CRITICAL'])]\n",
+    "remediation_df.to_excel(\"Output_Files/\" + \"In_Store_Remediation.xlsx\", index=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "7151b00b-db23-4377-89ab-72863820fea0",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(550, 6)"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "remediation_df = remediation_df[['store_id', 'category', 'received_date', 'net_loss_mitigation', 'issue_id']]\n",
+    "remediation_df['remed_type'] = 'In-Store'\n",
+    "remediation_df.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "1350f51f-169f-4d32-979e-4e4459da47bc",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(9, 6)"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "return_remediation_df = return_remediation_df[return_remediation_df['issue_id'].notnull()]\n",
+    "\n",
+    "return_remediation_df = return_remediation_df[['store_id', 'category', 'return_date', 'net_loss_mitigation', 'issue_id']]\n",
+    "return_remediation_df['remed_type'] = 'Returns'\n",
+    "return_remediation_df.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "7944a560-2a40-41f5-8baa-acb843f76d36",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def calculate_kpis(remediation_df, return_remediation_df, selected_date):\n",
+    "    # Ensure dates are datetime\n",
+    "    remediation_df[\"Received_Date\"] = pd.to_datetime(remediation_df[\"received_date\"])\n",
+    "    return_remediation_df[\"return_date\"] = pd.to_datetime(return_remediation_df[\"return_date\"])\n",
+    "    selected_date = pd.to_datetime(selected_date)\n",
+    "\n",
+    "    # Merge both datasets into one common df\n",
+    "    remediation_df = remediation_df.rename(columns={\"received_date\": \"date\"})\n",
+    "    return_remediation_df = return_remediation_df.rename(columns={\"return_date\": \"date\"})\n",
+    "    \n",
+    "    all_df = pd.concat([remediation_df, return_remediation_df], ignore_index=True)\n",
+    "\n",
+    "    # ---------------- KPIs ---------------- #\n",
+    "    # 1. Today's Loss Mitigation\n",
+    "    todays_loss = all_df.loc[all_df[\"date\"] == selected_date, \"net_loss_mitigation\"].sum()\n",
+    "\n",
+    "    # 2. Month To Date Loss Mitigation\n",
+    "    mtd_loss = all_df.loc[\n",
+    "        (all_df[\"date\"].dt.month == selected_date.month) & \n",
+    "        (all_df[\"date\"].dt.year == selected_date.year),\n",
+    "        \"net_loss_mitigation\"\n",
+    "    ].sum()\n",
+    "\n",
+    "    # 3. Year To Date Loss Mitigation\n",
+    "    ytd_loss = all_df.loc[\n",
+    "        all_df[\"date\"].dt.year == selected_date.year,\n",
+    "        \"net_loss_mitigation\"\n",
+    "    ].sum()\n",
+    "\n",
+    "    # 4. Shrinkage alert triggered (alerts = count of records on selected date)\n",
+    "    shrinkage_alerts = all_df.loc[all_df[\"date\"] == selected_date].shape[0]\n",
+    "\n",
+    "    # 5. Incident Frequency (compare counts between store remediation vs return remediation for selected date)\n",
+    "    store_alerts = remediation_df.loc[remediation_df[\"date\"] == selected_date].shape[0]\n",
+    "    return_alerts = return_remediation_df.loc[return_remediation_df[\"date\"] == selected_date].shape[0]\n",
+    "\n",
+    "    incident_frequency = \"Store\" if store_alerts > return_alerts else \"Return\" if return_alerts > store_alerts else \"Equal\"\n",
+    "\n",
+    "    # 6. Last 7 days Loss Mitigation (daily breakdown)\n",
+    "    last_7_days = all_df.loc[\n",
+    "        (all_df[\"date\"] <= selected_date) & \n",
+    "        (all_df[\"date\"] > selected_date - pd.Timedelta(days=7))\n",
+    "    ]\n",
+    "    \n",
+    "    last_7_loss = (\n",
+    "        last_7_days.groupby(\"date\")[\"net_loss_mitigation\"].sum()\n",
+    "        .reindex(pd.date_range(selected_date - pd.Timedelta(days=6), selected_date), fill_value=0)\n",
+    "    )\n",
+    "\n",
+    "\n",
+    "    # 7. Monthly Loss Mitigation Per Store (Top 10 stores)\n",
+    "    monthly_store_loss = (\n",
+    "        all_df.loc[\n",
+    "            (all_df[\"date\"].dt.month == selected_date.month) & \n",
+    "            (all_df[\"date\"].dt.year == selected_date.year)\n",
+    "        ]\n",
+    "        .groupby(\"store_id\")[\"net_loss_mitigation\"].sum()\n",
+    "        .nlargest(10)\n",
+    "    )\n",
+    "\n",
+    "    # Prepare results\n",
+    "    kpis = {\n",
+    "        \"Todays_Loss_Mitigation\": todays_loss,\n",
+    "        \"MTD_Loss_Mitigation\": mtd_loss,\n",
+    "        \"YTD_Loss_Mitigation\": ytd_loss,\n",
+    "        \"Shrinkage_Alerts\": shrinkage_alerts,\n",
+    "        \"Incident_Frequency\": incident_frequency,\n",
+    "        \"Last_7_Days_Loss_Mitigation\": last_7_loss,\n",
+    "        \"Top_10_Stores_Monthly_Loss_Mitigation\": monthly_store_loss\n",
+    "    }\n",
+    "    \n",
+    "    return kpis\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "id": "2920b541-8605-4cc0-a3bc-43874a1e2492",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'Todays_Loss_Mitigation': np.float64(10897.448690308636),\n",
+       " 'MTD_Loss_Mitigation': np.float64(21392.522190308635),\n",
+       " 'YTD_Loss_Mitigation': np.float64(1194466.17779504),\n",
+       " 'Shrinkage_Alerts': 56,\n",
+       " 'Incident_Frequency': 'Store',\n",
+       " 'Last_7_Days_Loss_Mitigation': 2025-08-26     3082.040000\n",
+       " 2025-08-27     3459.540000\n",
+       " 2025-08-28     8623.250078\n",
+       " 2025-08-29    12493.746613\n",
+       " 2025-08-30     9877.224987\n",
+       " 2025-08-31    13302.946228\n",
+       " 2025-09-01    10897.448690\n",
+       " Freq: D, Name: net_loss_mitigation, dtype: float64,\n",
+       " 'Top_10_Stores_Monthly_Loss_Mitigation': store_id\n",
+       " STR_027    1760.485000\n",
+       " STR_005    1403.321500\n",
+       " STR_012    1349.199600\n",
+       " STR_020    1258.951634\n",
+       " STR_004    1236.873486\n",
+       " STR_030    1182.219200\n",
+       " STR_002    1172.139600\n",
+       " STR_013    1132.032500\n",
+       " STR_015    1041.771700\n",
+       " STR_001     740.882000\n",
+       " Name: net_loss_mitigation, dtype: float64}"
+      ]
+     },
+     "execution_count": 23,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "kpis = calculate_kpis(remediation_df, return_remediation_df, \"2025-09-01\")\n",
+    "kpis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0b6ebd2c-8cdd-4ba2-b2e2-24be4bd18f8f",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.13.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
