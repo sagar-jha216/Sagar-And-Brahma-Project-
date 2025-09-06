@@ -1,0 +1,30 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.controllers.impact_tracker_KPI import get_impact_tracker_summary
+from typing import Optional, List
+from pydantic import BaseModel, Field
+
+router = APIRouter()
+
+class ImpactTrackerFilters(BaseModel):
+    selected_date: str = Field(..., alias="selected_date")
+    region: Optional[str] = Field(None, alias="region")
+    store_id: Optional[List[str]] = Field(None, alias="store_id")
+    time_period: Optional[str] = Field(None, alias="time_period")
+    store_channel: Optional[List[str]] = Field(None, alias="store_channel")
+
+    class Config:
+        allow_population_by_field_name = True
+
+@router.post("/impact-tracker")
+def get_impact_tracker(filters: ImpactTrackerFilters, db: Session = Depends(get_db)):
+    result = get_impact_tracker_summary(
+        db=db,
+        selected_date=filters.selected_date,
+        region=filters.region,
+        store_id=','.join(filters.store_id) if filters.store_id else None,
+        time_period=filters.time_period,
+        store_channel=','.join(filters.store_channel) if filters.store_channel else None
+    )
+    return result
