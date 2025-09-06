@@ -1,0 +1,285 @@
+from sqlalchemy.orm import Session
+from sqlalchemy import func, case, desc, and_, or_
+from app.models.inventory import Inventory
+from app.models.returns import Return
+from app.models.stores import Store
+from app.models.remediation_recommendations import RemediationRecommendation
+from app.models.return_remediation import ReturnRemediation
+from app.utils.dashboard_filters import apply_inventory_filters
+from typing import Optional, Dict, List
+from datetime import date, datetime, timedelta
+import pandas as pd
+import numpy as np
+
+
+def apply_impact_tracker_filters(
+    db: Session,
+    region: Optional[str] = None,
+    store_id: Optional[str] = None,
+    time_period: Optional[str] = None,
+    store_channel: Optional[str] = None
+) -> Dict:
+    """
+    Apply filters for impact tracker KPIs
+    Returns filtered query objects for both remediation types
+    """
+    
+    # Base queries
+    remediation_query = db.query(RemediationRecommendation)
+    return_remediation_query = db.query(ReturnRemediation)
+    
+    # Join with stores for region and store channel filtering
+    remediation_query = remediation_query.join(Store, RemediationRecommendation.store_id == Store.Store_ID)
+    return_remediation_query = return_remediation_query.join(Store, ReturnRemediation.store_id == Store.Store_ID)
+    
+    filters = []
+    
+    # Region filter
+    if region:
+        filters.append(Store.Store_Region == region)
+    
+    # Store ID filter (supports comma-separated values)
+    if store_id:
+        store_ids = [s.strip() for s in store_id.split(',') if s.strip()]
+        if store_ids:
+            filters.append(Store.Store_ID.in_(store_ids))
+    
+    # Store channel filter (supports comma-separated values)
+    if store_channel:
+        channels = [c.strip() for c in store_channel.split(',') if c.strip()]
+        if channels:
+            filters.append(Store.Store_Channel.in_(channels))
+    
+    # Time period filter (applies to dates before the selected date)
+    if time_period:
+        time_date = datetime.strptime(time_period, '%Y-%m-%d').date()
+        filters.append(RemediationRecommendation.received_date <= time_date)
+        filters.append(ReturnRemediation.return_date <= time_date)
+    
+    # Apply filters to both queries
+    if filters:
+        remediation_query = remediation_query.filter(and_(*filters))
+        return_remediation_query = return_remediation_query.filter(and_(*filters))
+    
+    return {
+        'remediation_query': remediation_query,
+        'return_remediation_query': return_remediation_query
+    }
+
+
+def calculate_impact_tracker_kpis(
+    db: Session,
+    selected_date: str,
+    region: Optional[str] = None,
+    store_id: Optional[str] = None,
+    time_period: Optional[str] = None,
+    store_channel: Optional[str] = None
+) -> Dict:
+    """
+    Calculate all impact tracker KPIs based on the provided logic
+    """
+    
+    # Apply filters
+    filtered_queries = apply_impact_tracker_filters(
+        db, region, store_id, time_period, store_channel
+    )
+    
+    # Get filtered data
+    remediation_data = filtered_queries['remediation_query'].all()
+    return_remediation_data = filtered_queries['return_remediation_query'].all()
+    
+    # Convert to DataFrames
+    remediation_df = pd.DataFrame([{
+        'store_id': item.store_id,
+        'category': item.category,
+        'received_date': item.received_date,
+        'net_loss_mitigation': item.net_loss_mitigation,
+        'issue_id': item.issue_id,
+        'risk_level': item.risk_level
+    } for item in remediation_data])
+    
+    return_remediation_df = pd.DataFrame([{
+        'store_id': item.store_id,
+        'category': item.category,
+        'return_date': item.return_date,
+        'net_loss_mitigation': item.net_loss_mitigation,
+        'issue_id': item.issue_id
+    } for item in return_remediation_data])
+    
+    # Process data similar to your logic
+    if not remediation_df.empty:
+        # Filter out LOW and CRITICAL risk levels, keep only HIGH and VERY_HIGH
+        remediation_df = remediation_df[~remediation_df['risk_level'].isin(['LOW', 'CRITICAL'])]
+        
+        # For VERY_HIGH risk, keep only max net_loss_mitigation per group
+        if 'VERY_HIGH' in remediation_df['risk_level'].values:
+            mask = (
+                (remediation_df["risk_level"] != "VERY_HIGH") |
+                (
+                    remediation_df["net_loss_mitigation"] ==
+                    remediation_df.groupby(["store_id", "issue_id"])["net_loss_mitigation"].transform("max")
+                )
+            )
+            remediation_df = remediation_df[mask]
+        
+        remediation_df['remed_type'] = 'In-Store'
+    
+    if not return_remediation_df.empty:
+        # Filter out null issue_ids
+        return_remediation_df = return_remediation_df[return_remediation_df['issue_id'].notnull()]
+        return_remediation_df['remed_type'] = 'Returns'
+    
+    # Convert dates to datetime
+    selected_date_dt = pd.to_datetime(selected_date)
+    
+    if not remediation_df.empty:
+        remediation_df["received_date"] = pd.to_datetime(remediation_df["received_date"])
+    if not return_remediation_df.empty:
+        return_remediation_df["return_date"] = pd.to_datetime(return_remediation_df["return_date"])
+    
+    # Merge both datasets
+    if not remediation_df.empty and not return_remediation_df.empty:
+        remediation_df = remediation_df.rename(columns={"received_date": "date"})
+        return_remediation_df = return_remediation_df.rename(columns={"return_date": "date"})
+        all_df = pd.concat([remediation_df, return_remediation_df], ignore_index=True)
+    elif not remediation_df.empty:
+        remediation_df = remediation_df.rename(columns={"received_date": "date"})
+        all_df = remediation_df
+    elif not return_remediation_df.empty:
+        return_remediation_df = return_remediation_df.rename(columns={"return_date": "date"})
+        all_df = return_remediation_df
+    else:
+        # No data available
+        return {
+            "todays_loss_mitigation": 0,
+            "mtd_loss_mitigation": 0,
+            "ytd_loss_mitigation": 0,
+            "shrinkage_alerts": 0,
+            "incident_frequency": "No Data",
+            "last_7_days_loss_mitigation": {},
+            "top_10_stores_monthly_loss_mitigation": {}
+        }
+    
+    # Calculate KPIs
+    kpis = {}
+    
+    # 1. Today's Loss Mitigation
+    todays_data = all_df[all_df["date"] == selected_date_dt]
+    kpis["todays_loss_mitigation"] = float(todays_data["net_loss_mitigation"].sum()) if not todays_data.empty else 0
+    
+    # 2. Month To Date Loss Mitigation
+    mtd_data = all_df[
+        (all_df["date"].dt.month == selected_date_dt.month) & 
+        (all_df["date"].dt.year == selected_date_dt.year)
+    ]
+    kpis["mtd_loss_mitigation"] = float(mtd_data["net_loss_mitigation"].sum()) if not mtd_data.empty else 0
+    
+    # 3. Year To Date Loss Mitigation
+    ytd_data = all_df[all_df["date"].dt.year == selected_date_dt.year]
+    kpis["ytd_loss_mitigation"] = float(ytd_data["net_loss_mitigation"].sum()) if not ytd_data.empty else 0
+    
+    # 4. Shrinkage alert triggered (count of records on selected date)
+    kpis["shrinkage_alerts"] = int(todays_data.shape[0])
+    
+    # 5. Incident Frequency
+    if not remediation_df.empty and not return_remediation_df.empty:
+        store_alerts = remediation_df[remediation_df["date"] == selected_date_dt].shape[0]
+        return_alerts = return_remediation_df[return_remediation_df["date"] == selected_date_dt].shape[0]
+        
+        if store_alerts > return_alerts:
+            kpis["incident_frequency"] = "Store"
+        elif return_alerts > store_alerts:
+            kpis["incident_frequency"] = "Return"
+        else:
+            kpis["incident_frequency"] = "Equal"
+    elif not remediation_df.empty:
+        kpis["incident_frequency"] = "Store"
+    elif not return_remediation_df.empty:
+        kpis["incident_frequency"] = "Return"
+    else:
+        kpis["incident_frequency"] = "No Data"
+    
+    # 6. Last 7 days Loss Mitigation (daily breakdown)
+    last_7_days_data = all_df[
+        (all_df["date"] <= selected_date_dt) & 
+        (all_df["date"] > selected_date_dt - pd.Timedelta(days=7))
+    ]
+    
+    if not last_7_days_data.empty:
+        last_7_loss = (
+            last_7_days_data.groupby("date")["net_loss_mitigation"].sum()
+            .reindex(pd.date_range(selected_date_dt - pd.Timedelta(days=6), selected_date_dt), fill_value=0)
+        )
+        kpis["last_7_days_loss_mitigation"] = {
+            date.strftime('%Y-%m-%d'): float(value) 
+            for date, value in last_7_loss.items()
+        }
+    else:
+        kpis["last_7_days_loss_mitigation"] = {}
+    
+    # 7. Monthly Loss Mitigation Per Store (Top 10 stores)
+    monthly_store_data = all_df[
+        (all_df["date"].dt.month == selected_date_dt.month) & 
+        (all_df["date"].dt.year == selected_date_dt.year)
+    ]
+    
+    if not monthly_store_data.empty:
+        monthly_store_loss = (
+            monthly_store_data.groupby("store_id")["net_loss_mitigation"].sum()
+            .nlargest(10)
+        )
+        kpis["top_10_stores_monthly_loss_mitigation"] = {
+            store_id: float(value) 
+            for store_id, value in monthly_store_loss.items()
+        }
+    else:
+        kpis["top_10_stores_monthly_loss_mitigation"] = {}
+    
+    return kpis
+
+
+def get_impact_tracker_summary(
+    db: Session,
+    selected_date: str,
+    region: Optional[str] = None,
+    store_id: Optional[str] = None,
+    time_period: Optional[str] = None,
+    store_channel: Optional[str] = None
+) -> Dict:
+    """
+    Get comprehensive impact tracker summary with all KPIs
+    """
+    try:
+        kpis = calculate_impact_tracker_kpis(
+            db, selected_date, region, store_id, time_period, store_channel
+        )
+        
+        return {
+            "success": True,
+            "data": kpis,
+            "filters_applied": {
+                "region": region,
+                "store_id": store_id,
+                "time_period": time_period,
+                "store_channel": store_channel,
+                "selected_date": selected_date
+            }
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "data": None
+        }
+
+
+
+
+
+
+
+
+
+
+
+
