@@ -1,0 +1,54 @@
+from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from app.models.remediation_recommendations import RemediationRecommendation as RecommendationModel
+from app.schemas.remediation_recommendations import (
+    RemediationRecommendationCreate,
+    RemediationRecommendationUpdate
+)
+ 
+# 🔹 Create a new recommendation
+def create_remediation_recommendation(recommendation: RemediationRecommendationCreate, db: Session):
+    db_recommendation = RecommendationModel(**recommendation.dict(by_alias=True))
+    db.add(db_recommendation)
+    db.commit()
+    db.refresh(db_recommendation)
+    return db_recommendation
+ 
+# 🔹 Get recommendation by ID
+def get_remediation_recommendation(id: int, db: Session):
+    recommendation = db.query(RecommendationModel).filter(RecommendationModel.id == id).first()
+    if not recommendation:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+    return recommendation
+ 
+# 🔹 Get recommendations by SKU
+def get_recommendations_by_sku(sku_id: str, db: Session):
+    recommendations = db.query(RecommendationModel).filter(RecommendationModel.sku_id == sku_id).all()
+    if not recommendations:
+        raise HTTPException(status_code=404, detail="No recommendations found for this SKU")
+    return recommendations
+ 
+# 🔹 Update recommendation by ID
+def update_remediation_recommendation(id: int, recommendation_update: RemediationRecommendationUpdate, db: Session):
+    recommendation = db.query(RecommendationModel).filter(RecommendationModel.id == id).first()
+    if not recommendation:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+    
+    for key, value in recommendation_update.dict(exclude_unset=True, by_alias=True).items():
+        setattr(recommendation, key, value)
+    
+    db.commit()
+    db.refresh(recommendation)
+    return recommendation
+ 
+# 🔹 Delete recommendation by ID
+def delete_remediation_recommendation(id: int, db: Session):
+    recommendation = db.query(RecommendationModel).filter(RecommendationModel.id == id).first()
+    if not recommendation:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+    
+    db.delete(recommendation)
+    db.commit()
+    return {"detail": "Recommendation deleted successfully"}
+ 
+ 
